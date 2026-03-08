@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import Dict, List
 
 
 @dataclass
 class RuleFilter:
-    field: str
+    rule_type: str
+    field_name: str
     condition: str
     value: str
 
@@ -12,18 +13,18 @@ class RuleFilter:
 @dataclass
 class EventConfig:
     event_id: int
-    name: str
-    enabled: bool = True
-    include_rules: List[RuleFilter] = field(default_factory=list)
-    exclude_rules: List[RuleFilter] = field(default_factory=list)
+    event_name: str
+    rules: List[RuleFilter] = field(default_factory=list)
 
 
-@dataclass
 class SysmonConfig:
-    events: List[EventConfig] = field(default_factory=list)
+    def __init__(self) -> None:
+        self.events: Dict[int, EventConfig] = {}
 
-    def get_event(self, event_id: int) -> EventConfig | None:
-        for event in self.events:
-            if event.event_id == event_id:
-                return event
-        return None
+    def get_or_create_event(self, event_id: int, event_name: str) -> EventConfig:
+        if event_id not in self.events:
+            self.events[event_id] = EventConfig(
+                event_id=event_id,
+                event_name=event_name,
+            )
+        return self.events[event_id]
