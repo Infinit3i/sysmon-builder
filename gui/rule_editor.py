@@ -27,13 +27,15 @@ class RuleEditor(QWidget):
         self.rule_type.addItems(["include", "exclude"])
 
         self.field_box = QComboBox()
-        self.field_box.addItems(["Image", "CommandLine", "ParentImage"])
 
         self.condition_box = QComboBox()
         self.condition_box.addItems(["is", "contains", "begin with", "end with"])
 
+        self.value_preset_box = QComboBox()
+        self.value_preset_box.setEditable(False)
+
         self.value_input = QLineEdit()
-        self.value_input.setPlaceholderText("Enter value...")
+        self.value_input.setPlaceholderText("Enter custom value or use preset below...")
 
         self.add_button = QPushButton("Add Rule")
         self.remove_button = QPushButton("Remove Selected Rule")
@@ -44,6 +46,7 @@ class RuleEditor(QWidget):
         self.layout.addWidget(self.rule_type)
         self.layout.addWidget(self.field_box)
         self.layout.addWidget(self.condition_box)
+        self.layout.addWidget(self.value_preset_box)
         self.layout.addWidget(self.value_input)
         self.layout.addWidget(self.add_button)
         self.layout.addWidget(self.remove_button)
@@ -51,12 +54,43 @@ class RuleEditor(QWidget):
 
         self.add_button.clicked.connect(self.add_rule)
         self.remove_button.clicked.connect(self.remove_selected_rule)
+        self.field_box.currentTextChanged.connect(self.load_value_presets_for_field)
 
     def set_event(self, event_id: int, event_name: str) -> None:
         self.current_event_id = event_id
         self.current_event_name = event_name
         self.title.setText(f"{event_id} - {event_name}")
+        self.load_fields_for_event()
         self.refresh_rules()
+
+    def load_fields_for_event(self) -> None:
+        from data.sysmon_fields import SYS_MON_FIELDS
+
+        self.field_box.clear()
+
+        if self.current_event_id is None:
+            self.title.setText("No Event Selected")
+            return
+
+        fields = SYS_MON_FIELDS.get(self.current_event_id, [])
+
+        if not fields:
+            self.title.setText(f"{self.current_event_id} - {self.current_event_name} (no fields found)")
+            self.value_preset_box.clear()
+            return
+
+        self.field_box.addItems(fields)
+        self.load_value_presets_for_field(self.field_box.currentText())
+
+    def load_value_presets_for_field(self, field_name: str) -> None:
+        from data.sysmon_value_presets import SYS_MON_VALUE_PRESETS
+
+        self.value_preset_box.clear()
+        self.value_preset_box.addItem("")
+
+        presets = SYS_MON_VALUE_PRESETS.get(field_name, [])
+        if presets:
+            self.value_preset_box.addItems(presets)
 
     def refresh_rules(self) -> None:
         self.rule_list.clear()
@@ -82,7 +116,10 @@ class RuleEditor(QWidget):
         if self.current_event_id is None:
             return
 
-        value = self.value_input.text().strip()
+        custom_value = self.value_input.text().strip()
+        preset_value = self.value_preset_box.currentText().strip()
+
+        value = custom_value if custom_value else preset_value
         if not value:
             return
 
@@ -101,6 +138,7 @@ class RuleEditor(QWidget):
         )
 
         self.value_input.clear()
+        self.value_preset_box.setCurrentIndex(0)
         self.refresh_rules()
 
     def remove_selected_rule(self) -> None:
