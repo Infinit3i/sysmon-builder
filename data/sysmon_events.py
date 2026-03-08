@@ -31,6 +31,17 @@ SYS_MON_EVENTS: dict[int, str] = {
     30: "File Blocked",
 }
 
+
 def get_event_xml_tag(event_id: int) -> str:
     name = SYS_MON_EVENTS.get(event_id, f"Event{event_id}")
     return name.replace(" ", "")
+
+
+def get_event_id_from_xml_tag(xml_tag: str) -> int | None:
+    normalized = xml_tag.replace(" ", "").lower()
+
+    for event_id in SYS_MON_EVENTS:
+        if get_event_xml_tag(event_id).lower() == normalized:
+            return event_id
+
+    return None
