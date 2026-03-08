@@ -1,20 +1,20 @@
-name: Release Sysmon Builder
+name: Release
 
 on:
   push:
     tags:
-      - "v*"
+      - "v*.*.*"
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+  build-linux:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v5
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -26,43 +26,54 @@ jobs:
           python -m pip install --upgrade pip
           pip install PySide6 pyinstaller
 
-      - name: Build application
+      - name: Build Linux package
         run: |
           pyinstaller --noconfirm --windowed --onedir --name sysmon-builder main.py
-
-      - name: Archive Linux build
-        if: runner.os == 'Linux'
-        run: |
           cd dist
           tar -czf sysmon-builder-linux.tar.gz sysmon-builder
 
-      - name: Archive Windows build
-        if: runner.os == 'Windows'
-        run: |
-          powershell Compress-Archive -Path dist\sysmon-builder -DestinationPath dist\sysmon-builder-windows.zip
-
       - name: Upload Linux artifact
-        if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
           name: sysmon-builder-linux
           path: dist/sysmon-builder-linux.tar.gz
+          if-no-files-found: error
 
-      - name: Upload Windows artifact
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: sysmon-builder-windows
-          path: dist/sysmon-builder-windows.zip
-
-      - name: Create GitHub Release and upload Linux asset
-        if: runner.os == 'Linux'
+      - name: Upload Linux release asset
         uses: softprops/action-gh-release@v2
         with:
           files: dist/sysmon-builder-linux.tar.gz
 
-      - name: Upload Windows asset to GitHub Release
-        if: runner.os == 'Windows'
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install PySide6 pyinstaller
+
+      - name: Build Windows package
+        run: |
+          pyinstaller --noconfirm --windowed --onedir --name sysmon-builder main.py
+          powershell Compress-Archive -Path dist\sysmon-builder -DestinationPath dist\sysmon-builder-windows.zip
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sysmon-builder-windows
+          path: dist/sysmon-builder-windows.zip
+          if-no-files-found: error
+
+      - name: Upload Windows release asset
         uses: softprops/action-gh-release@v2
         with:
           files: dist/sysmon-builder-windows.zip
