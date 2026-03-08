@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
+    QHBoxLayout,
     QLabel,
     QComboBox,
     QLineEdit,
@@ -36,19 +37,25 @@ class RuleEditor(QWidget):
         self.value_preset_box.setEditable(False)
 
         self.value_input = QLineEdit()
-        self.value_input.setPlaceholderText("Enter custom value or use preset below...")
+        self.value_input.setPlaceholderText("Enter custom value...")
 
         self.add_button = QPushButton("Add Rule")
         self.remove_button = QPushButton("Remove Selected Rule")
 
         self.rule_list = QListWidget()
 
+        self.rule_row_1 = QHBoxLayout()
+        self.rule_row_1.addWidget(self.rule_type)
+        self.rule_row_1.addWidget(self.field_box)
+        self.rule_row_1.addWidget(self.condition_box)
+
+        self.rule_row_2 = QHBoxLayout()
+        self.rule_row_2.addWidget(self.value_preset_box)
+        self.rule_row_2.addWidget(self.value_input)
+
         self.layout.addWidget(self.title)
-        self.layout.addWidget(self.rule_type)
-        self.layout.addWidget(self.field_box)
-        self.layout.addWidget(self.condition_box)
-        self.layout.addWidget(self.value_preset_box)
-        self.layout.addWidget(self.value_input)
+        self.layout.addLayout(self.rule_row_1)
+        self.layout.addLayout(self.rule_row_2)
         self.layout.addWidget(self.add_button)
         self.layout.addWidget(self.remove_button)
         self.layout.addWidget(self.rule_list)
