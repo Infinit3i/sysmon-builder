@@ -17,6 +17,7 @@ class RuleEditor(QWidget):
         self.config = config
         self.current_event_id: int | None = None
         self.current_event_name: str = ""
+        self.displayed_rules: list[tuple[int, int]] = []
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -94,23 +95,19 @@ class RuleEditor(QWidget):
 
     def refresh_rules(self) -> None:
         self.rule_list.clear()
+        self.displayed_rules.clear()
 
-        if self.current_event_id is None:
-            return
-
-        event_config = self.config.get_or_create_event(
-            self.current_event_id,
-            self.current_event_name,
-        )
-
-        for rule in event_config.rules:
-            rule_text = (
-                f"{rule.rule_type} | "
-                f"{rule.field_name} | "
-                f"{rule.condition} | "
-                f"{rule.value}"
-            )
-            self.rule_list.addItem(rule_text)
+        for event_id, event_config in sorted(self.config.events.items()):
+            for rule_index, rule in enumerate(event_config.rules):
+                rule_text = (
+                    f"{event_id} | "
+                    f"{rule.rule_type} | "
+                    f"{rule.field_name} | "
+                    f"{rule.condition} | "
+                    f"{rule.value}"
+                )
+                self.rule_list.addItem(rule_text)
+                self.displayed_rules.append((event_id, rule_index))
 
     def add_rule(self) -> None:
         if self.current_event_id is None:
@@ -149,12 +146,16 @@ class RuleEditor(QWidget):
         if selected_row < 0:
             return
 
-        event_config = self.config.get_or_create_event(
-            self.current_event_id,
-            self.current_event_name,
-        )
+        if selected_row >= len(self.displayed_rules):
+            return
 
-        if 0 <= selected_row < len(event_config.rules):
-            del event_config.rules[selected_row]
+        event_id, rule_index = self.displayed_rules[selected_row]
+        event_config = self.config.events.get(event_id)
+
+        if event_config is None:
+            return
+
+        if 0 <= rule_index < len(event_config.rules):
+            del event_config.rules[rule_index]
 
         self.refresh_rules()
