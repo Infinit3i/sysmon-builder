@@ -65,6 +65,32 @@ Get-CimInstance Win32_Service |
 Select-Object Name, DisplayName, State, StartMode, PathName, ProcessId |
 ConvertTo-Json -Depth 4 -Compress
 """,
+    "get_scheduled_tasks.ps1": r"""$ErrorActionPreference = 'Stop'
+
+$tasks = Get-ScheduledTask -ErrorAction SilentlyContinue
+
+$results = foreach ($task in $tasks) {
+    foreach ($action in $task.Actions) {
+        if ($null -eq $action.Execute -or [string]::IsNullOrWhiteSpace([string]$action.Execute)) {
+            continue
+        }
+
+        [PSCustomObject]@{
+            TaskName = [string]$task.TaskName
+            TaskPath = [string]$task.TaskPath
+            State = [string]$task.State
+            Execute = [string]$action.Execute
+            Arguments = [string]$action.Arguments
+            WorkingDirectory = [string]$action.WorkingDirectory
+            UserId = [string]$task.Principal.UserId
+            LogonType = [string]$task.Principal.LogonType
+            RunLevel = [string]$task.Principal.RunLevel
+        }
+    }
+}
+
+$results | ConvertTo-Json -Depth 5 -Compress
+""",
     "get_registry_keys.ps1": r"""param(
     [int]$MaxPerPath = 200
 )
@@ -77,6 +103,8 @@ $paths = @(
     'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run',
     'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce',
     'HKLM:\SYSTEM\CurrentControlSet\Services',
+    'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks',
+    'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree',
     'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options',
     'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System',
     'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System'

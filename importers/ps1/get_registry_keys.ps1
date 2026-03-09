@@ -10,6 +10,8 @@ $paths = @(
     'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run',
     'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce',
     'HKLM:\SYSTEM\CurrentControlSet\Services',
+    'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks',
+    'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree',
     'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options',
     'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System',
     'HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\System'

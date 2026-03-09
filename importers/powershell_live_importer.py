@@ -127,6 +127,7 @@ def import_live_system_state() -> SysmonConfig:
         "get_processes.ps1",
         "get_network_connections.ps1",
         "get_services.ps1",
+        "get_scheduled_tasks.ps1",
         "get_registry_keys.ps1",
     ]
     for script_name in required:
@@ -141,6 +142,9 @@ def import_live_system_state() -> SysmonConfig:
     network_data = _load_script_json(powershell_exe, scripts_by_name["get_network_connections.ps1"])
     service_data = _as_record_list(
         _load_script_json(powershell_exe, scripts_by_name["get_services.ps1"])
+    )
+    scheduled_task_data = _as_record_list(
+        _load_script_json(powershell_exe, scripts_by_name["get_scheduled_tasks.ps1"])
     )
     registry_data = _as_record_list(
         _load_script_json(powershell_exe, scripts_by_name["get_registry_keys.ps1"])
@@ -162,6 +166,8 @@ def import_live_system_state() -> SysmonConfig:
     network_group_name = "Live Network Connections"
     service_group_id = "live-services"
     service_group_name = "Live Services"
+    scheduled_task_group_id = "live-scheduled-tasks"
+    scheduled_task_group_name = "Live Scheduled Tasks"
     registry_group_id = "live-registry"
     registry_group_name = "Live Registry Keys"
 
@@ -200,6 +206,49 @@ def import_live_system_state() -> SysmonConfig:
                 binary_path,
                 service_group_id,
                 service_group_name,
+                "or",
+            )
+
+    for task in scheduled_task_data:
+        execute_raw = str(task.get("Execute") or "").strip()
+        arguments = str(task.get("Arguments") or "").strip()
+        execute_image = _extract_binary_path(execute_raw)
+
+        if execute_image:
+            _add_rule_if_missing(
+                process_event.rules,
+                process_seen,
+                "include",
+                "Image",
+                "is",
+                execute_image,
+                scheduled_task_group_id,
+                scheduled_task_group_name,
+                "or",
+            )
+
+        if execute_raw and arguments:
+            _add_rule_if_missing(
+                process_event.rules,
+                process_seen,
+                "include",
+                "CommandLine",
+                "contains",
+                f"{execute_raw} {arguments}".strip(),
+                scheduled_task_group_id,
+                scheduled_task_group_name,
+                "or",
+            )
+        elif arguments:
+            _add_rule_if_missing(
+                process_event.rules,
+                process_seen,
+                "include",
+                "CommandLine",
+                "contains",
+                arguments,
+                scheduled_task_group_id,
+                scheduled_task_group_name,
                 "or",
             )
 
