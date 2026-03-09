@@ -1,18 +1,18 @@
 # Sysmon Config Builder
 
 <div align="center">
-  <img src="https://git.infinit3i.com/matthew/Hunt-AI/raw/commit/4c3b0654cd4c5b94e8659f2d18f86e01b579ba87/Assets/threat_hunter.jpeg" alt="Threat Hunter" width="400">
+  <img src="https://git.infinit3i.com/matthew/sysmon-builder/raw/commit/4c3b0654cd4c5b94e8659f2d18f86e01b579ba87/Assets/threat_hunter.jpeg" alt="Threat Hunter" width="400">
 </div>
 
 <p align="center">
   <br><br>
-    <a title="Releases" target="_blank" href="https://github.com/infinit3i/hunt-ai/releases"><img src="https://img.shields.io/github/release/infinit3i/hunt-ai.svg?style=flat-square&color=9CF"></a>
-    <a title="Hits" target="_blank" href="https://github.com/infinit3i/hunt-ai"><img src="https://hits.b3log.org/infinit3i/hunt-ai.svg"></a>
-    <a title="Code Size" target="_blank" href="https://github.com/infinit3i/hunt-ai"><img src="https://img.shields.io/github/languages/code-size/infinit3i/hunt-ai.svg?style=flat-square&color=yellow"></a>
+    <a title="Releases" target="_blank" href="https://github.com/infinit3i/sysmon-builder/releases"><img src="https://img.shields.io/github/release/infinit3i/sysmon-builder.svg?style=flat-square&color=9CF"></a>
+    <a title="Hits" target="_blank" href="https://github.com/infinit3i/sysmon-builder"><img src="https://hits.b3log.org/infinit3i/sysmon-builder.svg"></a>
+    <a title="Code Size" target="_blank" href="https://github.com/infinit3i/sysmon-builder"><img src="https://img.shields.io/github/languages/code-size/infinit3i/sysmon-builder.svg?style=flat-square&color=yellow"></a>
   <br>
-    <a title="GitHub Pull Requests" target="_blank" href="https://github.com/infinit3i/hunt-ai/pulls"><img src="https://img.shields.io/github/issues-pr-closed/infinit3i/hunt-ai.svg?style=flat-square&color=FF9966"></a>
-    <a title="GitHub Commits" target="_blank" href="https://github.com/infinit3i/hunt-ai/commits/master"><img src="https://img.shields.io/github/commit-activity/m/infinit3i/hunt-ai.svg?style=flat-square"></a>
-    <a title="Last Commit" target="_blank" href="https://github.com/infinit3i/hunt-ai/commits/master"><img src="https://img.shields.io/github/last-commit/infinit3i/hunt-ai.svg?style=flat-square&color=FF9900"></a>
+    <a title="GitHub Pull Requests" target="_blank" href="https://github.com/infinit3i/sysmon-builder/pulls"><img src="https://img.shields.io/github/issues-pr-closed/infinit3i/sysmon-builder.svg?style=flat-square&color=FF9966"></a>
+    <a title="GitHub Commits" target="_blank" href="https://github.com/infinit3i/sysmon-builder/commits/master"><img src="https://img.shields.io/github/commit-activity/m/infinit3i/sysmon-builder.svg?style=flat-square"></a>
+    <a title="Last Commit" target="_blank" href="https://github.com/infinit3i/sysmon-builder/commits/master"><img src="https://img.shields.io/github/last-commit/infinit3i/sysmon-builder.svg?style=flat-square&color=FF9900"></a>
 
 Sysmon Config Builder is a GUI tool for creating, editing, importing, and exporting **Microsoft Sysmon configuration files**. It allows users to construct event filtering rules without manually editing XML, making it easier to build and maintain custom Sysmon configurations.
 
