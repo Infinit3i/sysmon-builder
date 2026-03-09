@@ -123,7 +123,12 @@ def import_live_system_state() -> SysmonConfig:
     script_paths = ensure_ps_scripts()
     scripts_by_name = {path.name: path for path in script_paths}
 
-    required = ["get_processes.ps1", "get_network_connections.ps1", "get_services.ps1"]
+    required = [
+        "get_processes.ps1",
+        "get_network_connections.ps1",
+        "get_services.ps1",
+        "get_registry_keys.ps1",
+    ]
     for script_name in required:
         if script_name not in scripts_by_name:
             raise RuntimeError(f"Missing required script: {script_name}")
@@ -137,14 +142,19 @@ def import_live_system_state() -> SysmonConfig:
     service_data = _as_record_list(
         _load_script_json(powershell_exe, scripts_by_name["get_services.ps1"])
     )
+    registry_data = _as_record_list(
+        _load_script_json(powershell_exe, scripts_by_name["get_registry_keys.ps1"])
+    )
 
     config = SysmonConfig()
 
     process_event = config.get_or_create_event(1, "Process Create")
     network_event = config.get_or_create_event(3, "Network connection")
+    registry_event = config.get_or_create_event(13, "Registry Event")
 
     process_seen: set[tuple[str, str, str, str, str | None, str | None, str | None]] = set()
     network_seen: set[tuple[str, str, str, str, str | None, str | None, str | None]] = set()
+    registry_seen: set[tuple[str, str, str, str, str | None, str | None, str | None]] = set()
 
     process_group_id = "live-processes"
     process_group_name = "Live Process Inventory"
@@ -152,6 +162,8 @@ def import_live_system_state() -> SysmonConfig:
     network_group_name = "Live Network Connections"
     service_group_id = "live-services"
     service_group_name = "Live Services"
+    registry_group_id = "live-registry"
+    registry_group_name = "Live Registry Keys"
 
     process_id_to_image: dict[int, str] = {}
 
@@ -240,9 +252,44 @@ def import_live_system_state() -> SysmonConfig:
                 "or",
             )
 
+    for record in registry_data:
+        path = str(record.get("RegistryPath") or "").strip()
+        name = str(record.get("Name") or "").strip()
+        value = str(record.get("Value") or "").strip()
+        kind = str(record.get("Kind") or "").strip().lower()
+
+        if path:
+            normalized_path = path.replace("Microsoft.PowerShell.Core\\Registry::", "").strip()
+            _add_rule_if_missing(
+                registry_event.rules,
+                registry_seen,
+                "include",
+                "TargetObject",
+                "contains",
+                normalized_path,
+                registry_group_id,
+                registry_group_name,
+                "or",
+            )
+
+        if kind == "value" and name and value:
+            _add_rule_if_missing(
+                registry_event.rules,
+                registry_seen,
+                "include",
+                "Details",
+                "contains",
+                f"{name}={value}",
+                registry_group_id,
+                registry_group_name,
+                "or",
+            )
+
     if not process_event.rules:
         config.events.pop(1, None)
     if not network_event.rules:
         config.events.pop(3, None)
+    if not registry_event.rules:
+        config.events.pop(13, None)
 
     return config
