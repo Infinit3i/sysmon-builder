@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QTreeWidget,
     QTreeWidgetItem,
+    QHeaderView,
 )
 from models.sysmon_config import RuleFilter, SysmonConfig
 from PySide6.QtGui import QColor
@@ -53,9 +54,13 @@ class RuleEditor(QWidget):
         self.add_button = QPushButton("Add Rule")
         self.remove_button = QPushButton("Remove Selected Rule")
         self.new_rules_only_toggle = QCheckBox("Show New Rules Only")
+        self.total_counts_label = QLabel("Include (0)  Exclude (0)")
 
         self.rule_tree = QTreeWidget()
+        self.rule_tree.setColumnCount(2)
         self.rule_tree.setHeaderHidden(True)
+        self.rule_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.rule_tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
 
         self.rule_row_1 = QHBoxLayout()
         self.rule_row_1.addWidget(self.rule_type)
@@ -77,6 +82,7 @@ class RuleEditor(QWidget):
         self.layout.addWidget(self.add_button)
         self.layout.addWidget(self.remove_button)
         self.layout.addWidget(self.new_rules_only_toggle)
+        self.layout.addWidget(self.total_counts_label)
         self.layout.addWidget(self.rule_tree)
 
         self.add_button.clicked.connect(self.add_rule)
@@ -171,6 +177,8 @@ class RuleEditor(QWidget):
     def refresh_rules(self) -> None:
         self.rule_tree.clear()
         show_new_only = self.new_rules_only_toggle.isChecked()
+        total_include = 0
+        total_exclude = 0
 
         for event_id, event_config in sorted(self.config.events.items()):
             if not event_config.rules:
@@ -184,7 +192,26 @@ class RuleEditor(QWidget):
             if not visible_rule_indexes:
                 continue
 
-            event_item = QTreeWidgetItem([f"{event_id} - {event_config.event_name}"])
+            include_count = 0
+            exclude_count = 0
+            for rule_index in visible_rule_indexes:
+                rule = event_config.rules[rule_index]
+                if rule.rule_type == "include":
+                    include_count += 1
+                elif rule.rule_type == "exclude":
+                    exclude_count += 1
+
+            total_include += include_count
+            total_exclude += exclude_count
+
+            event_item = QTreeWidgetItem(
+                [
+                    f"{event_id} - {event_config.event_name}",
+                    f"Include ({include_count})  Exclude ({exclude_count})",
+                ]
+            )
+            event_item.setTextAlignment(1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            event_item.setForeground(1, QColor("#90ee90"))  # light green counts
             self.rule_tree.addTopLevelItem(event_item)
 
             grouped_parents: dict[str, QTreeWidgetItem] = {}
@@ -197,13 +224,13 @@ class RuleEditor(QWidget):
                         group_name = rule.group_name or "Imported Rule"
                         group_relation = rule.group_relation or "or"
                         grouped_parents[rule.group_id] = QTreeWidgetItem(
-                            [f"Rule: {group_name} ({group_relation})"]
+                            [f"Rule: {group_name} ({group_relation})", ""]
                         )
                         event_item.addChild(grouped_parents[rule.group_id])
                     parent_item = grouped_parents[rule.group_id]
                 else:
                     if ungrouped_parent is None:
-                        ungrouped_parent = QTreeWidgetItem(["Ungrouped Rules"])
+                        ungrouped_parent = QTreeWidgetItem(["Ungrouped Rules", ""])
                         event_item.addChild(ungrouped_parent)
                     parent_item = ungrouped_parent
 
@@ -214,7 +241,7 @@ class RuleEditor(QWidget):
                     f"{rule.condition} | "
                     f"{rule.value}"
                 )
-                item = QTreeWidgetItem([rule_text])
+                item = QTreeWidgetItem([rule_text, ""])
                 item.setData(0, Qt.ItemDataRole.UserRole, (event_id, rule_index))
 
                 if not rule.imported:
@@ -225,6 +252,10 @@ class RuleEditor(QWidget):
             event_item.setExpanded(True)
 
         self.rule_tree.expandAll()
+        self.total_counts_label.setText(
+            f'Total Include <span style="color:#90ee90">({total_include})</span>  '
+            f'Total Exclude <span style="color:#90ee90">({total_exclude})</span>'
+        )
 
     def add_rule(self) -> None:
         if self.current_event_id is None:
