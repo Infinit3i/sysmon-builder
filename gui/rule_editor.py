@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QLineEdit,
     QPushButton,
+    QCheckBox,
     QTreeWidget,
     QTreeWidgetItem,
 )
@@ -51,6 +52,7 @@ class RuleEditor(QWidget):
 
         self.add_button = QPushButton("Add Rule")
         self.remove_button = QPushButton("Remove Selected Rule")
+        self.new_rules_only_toggle = QCheckBox("Show New Rules Only")
 
         self.rule_tree = QTreeWidget()
         self.rule_tree.setHeaderHidden(True)
@@ -74,12 +76,14 @@ class RuleEditor(QWidget):
         self.layout.addLayout(self.rule_row_2)
         self.layout.addWidget(self.add_button)
         self.layout.addWidget(self.remove_button)
+        self.layout.addWidget(self.new_rules_only_toggle)
         self.layout.addWidget(self.rule_tree)
 
         self.add_button.clicked.connect(self.add_rule)
         self.remove_button.clicked.connect(self.remove_selected_rule)
         self.field_box.currentTextChanged.connect(self.load_value_presets_for_field)
         self.group_box.currentIndexChanged.connect(self.on_group_selected)
+        self.new_rules_only_toggle.stateChanged.connect(self.refresh_rules)
 
     def set_event(self, event_id: int, event_name: str) -> None:
         self.current_event_id = event_id
@@ -166,20 +170,28 @@ class RuleEditor(QWidget):
 
     def refresh_rules(self) -> None:
         self.rule_tree.clear()
+        show_new_only = self.new_rules_only_toggle.isChecked()
 
         for event_id, event_config in sorted(self.config.events.items()):
             if not event_config.rules:
                 continue
 
-            event_item = QTreeWidgetItem(
-                [f"{event_id} - {event_config.event_name}"]
-            )
+            visible_rule_indexes = [
+                idx
+                for idx, rule in enumerate(event_config.rules)
+                if (not show_new_only) or (not rule.imported)
+            ]
+            if not visible_rule_indexes:
+                continue
+
+            event_item = QTreeWidgetItem([f"{event_id} - {event_config.event_name}"])
             self.rule_tree.addTopLevelItem(event_item)
 
             grouped_parents: dict[str, QTreeWidgetItem] = {}
             ungrouped_parent: QTreeWidgetItem | None = None
 
-            for rule_index, rule in enumerate(event_config.rules):
+            for rule_index in visible_rule_indexes:
+                rule = event_config.rules[rule_index]
                 if rule.group_id:
                     if rule.group_id not in grouped_parents:
                         group_name = rule.group_name or "Imported Rule"
