@@ -8,6 +8,7 @@ class RuleFilter:
     field_name: str
     condition: str
     value: str
+    imported: bool = False
 
 
 @dataclass

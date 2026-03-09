@@ -7,8 +7,10 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QListWidget,
+    QListWidgetItem,
 )
 from models.sysmon_config import RuleFilter, SysmonConfig
+from PySide6.QtGui import QColor
 
 
 class RuleEditor(QWidget):
@@ -113,7 +115,12 @@ class RuleEditor(QWidget):
                     f"{rule.condition} | "
                     f"{rule.value}"
                 )
-                self.rule_list.addItem(rule_text)
+                item = QListWidgetItem(rule_text)
+
+                if not rule.imported:
+                    item.setBackground(QColor("#ffe6cc"))  # light orange
+
+                self.rule_list.addItem(item)
                 self.displayed_rules.append((event_id, rule_index))
 
     def add_rule(self) -> None:

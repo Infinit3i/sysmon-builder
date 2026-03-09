@@ -31,6 +31,7 @@ def extract_rules_from_node(
                 field_name=field_name,
                 condition=condition,
                 value=value,
+                imported=True,
             )
         )
 
