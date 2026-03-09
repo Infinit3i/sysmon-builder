@@ -10,7 +10,6 @@
     <a title="Hits" target="_blank" href="https://github.com/infinit3i/sysmon-builder"><img src="https://hits.b3log.org/infinit3i/sysmon-builder.svg"></a>
     <a title="Code Size" target="_blank" href="https://github.com/infinit3i/sysmon-builder"><img src="https://img.shields.io/github/languages/code-size/infinit3i/sysmon-builder.svg?style=flat-square&color=yellow"></a>
   <br>
-    <a title="GitHub Stars" target="_blank" href="https://github.com/Infinit3i/sysmon-builder/stargazers"><img src="https://img.shields.io/github/stars/Infinit3i/sysmon-builder.svg?style=flat-square&color=brightgreen"></a>
     <a title="GitHub Commits" target="_blank" href="https://github.com/infinit3i/sysmon-builder/commits/master"><img src="https://img.shields.io/github/commit-activity/m/infinit3i/sysmon-builder.svg?style=flat-square"></a>
     <a title="Last Commit" target="_blank" href="https://github.com/infinit3i/sysmon-builder/commits/master"><img src="https://img.shields.io/github/last-commit/infinit3i/sysmon-builder.svg?style=flat-square&color=FF9900"></a>
 
