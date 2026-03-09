@@ -4,9 +4,9 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QComboBox,
-    QLineEdit,
     QPushButton,
     QCheckBox,
+    QCompleter,
     QTreeWidget,
     QTreeWidgetItem,
     QHeaderView,
@@ -23,6 +23,7 @@ class RuleEditor(QWidget):
         self.config = config
         self.current_event_id: int | None = None
         self.current_event_name: str = ""
+        self.tree_meta_role = int(Qt.ItemDataRole.UserRole) + 1
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -36,20 +37,37 @@ class RuleEditor(QWidget):
         self.group_box.setEditable(True)
         self.group_box.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.group_box.setPlaceholderText("Select or type rule group (optional)")
+        self.group_completer = QCompleter(self.group_box.model(), self.group_box)
+        self.group_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.group_completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.group_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self.group_box.setCompleter(self.group_completer)
 
         self.group_relation = QComboBox()
         self.group_relation.addItems(["or", "and"])
 
         self.field_box = QComboBox()
+        self.field_box.setEditable(True)
+        self.field_box.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.field_box.setPlaceholderText("Select or type category...")
+        self.field_completer = QCompleter(self.field_box.model(), self.field_box)
+        self.field_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.field_completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.field_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self.field_box.setCompleter(self.field_completer)
 
         self.condition_box = QComboBox()
         self.condition_box.addItems(["is", "contains", "begin with", "end with"])
 
         self.value_preset_box = QComboBox()
-        self.value_preset_box.setEditable(False)
-
-        self.value_input = QLineEdit()
-        self.value_input.setPlaceholderText("Enter custom value...")
+        self.value_preset_box.setEditable(True)
+        self.value_preset_box.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.value_preset_box.setPlaceholderText("Select or type value...")
+        self.value_completer = QCompleter(self.value_preset_box.model(), self.value_preset_box)
+        self.value_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.value_completer.setFilterMode(Qt.MatchFlag.MatchContains)
+        self.value_completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
+        self.value_preset_box.setCompleter(self.value_completer)
 
         self.add_button = QPushButton("Add Rule")
         self.remove_button = QPushButton("Remove Selected Rule")
@@ -73,7 +91,6 @@ class RuleEditor(QWidget):
 
         self.rule_row_2 = QHBoxLayout()
         self.rule_row_2.addWidget(self.value_preset_box)
-        self.rule_row_2.addWidget(self.value_input)
 
         self.layout.addWidget(self.title)
         self.layout.addLayout(self.group_row)
@@ -88,62 +105,62 @@ class RuleEditor(QWidget):
         self.add_button.clicked.connect(self.add_rule)
         self.remove_button.clicked.connect(self.remove_selected_rule)
         self.field_box.currentTextChanged.connect(self.load_value_presets_for_field)
-        self.group_box.currentIndexChanged.connect(self.on_group_selected)
         self.new_rules_only_toggle.stateChanged.connect(self.refresh_rules)
+        self.rule_tree.itemClicked.connect(self.on_rule_tree_item_clicked)
 
     def set_event(self, event_id: int, event_name: str) -> None:
+        self._set_active_event(event_id, event_name)
+        self.refresh_rules()
+
+    def _set_active_event(self, event_id: int, event_name: str) -> None:
         self.current_event_id = event_id
         self.current_event_name = event_name
         self.title.setText(f"{event_id} - {event_name}")
+        self.group_box.setEditText("")
         self.load_fields_for_event()
         self.refresh_group_options()
-        self.refresh_rules()
 
     def refresh_group_options(self) -> None:
+        typed_text = self.group_box.currentText()
         self.group_box.blockSignals(True)
         self.group_box.clear()
         self.group_box.addItem("")
-        self.group_box.setItemData(0, None, Qt.ItemDataRole.UserRole)
 
         if self.current_event_id is None:
+            self.group_box.setEditText(typed_text)
             self.group_box.blockSignals(False)
             return
 
         event_config = self.config.events.get(self.current_event_id)
         if event_config is None:
+            self.group_box.setEditText(typed_text)
             self.group_box.blockSignals(False)
             return
 
+        group_labels: list[str] = []
         seen_group_ids: set[str] = set()
         for rule in event_config.rules:
             if not rule.group_id or rule.group_id in seen_group_ids:
                 continue
             seen_group_ids.add(rule.group_id)
 
-            group_name = rule.group_name or "Imported Rule"
-            group_relation = rule.group_relation or "or"
-            label = f"{group_name} ({group_relation})"
-            self.group_box.addItem(label)
-            self.group_box.setItemData(
-                self.group_box.count() - 1,
-                {
-                    "group_id": rule.group_id,
-                    "group_name": rule.group_name,
-                    "group_relation": group_relation,
-                },
-                Qt.ItemDataRole.UserRole,
-            )
+            group_name = (rule.group_name or "").strip()
+            if group_name:
+                group_relation = (rule.group_relation or "or").strip()
+                group_labels.append(f"{group_name} ({group_relation})")
 
+        self.group_box.addItems(group_labels)
+        self.group_box.setEditText(typed_text)
         self.group_box.blockSignals(False)
 
-    def on_group_selected(self, *_args) -> None:
-        selected_data = self.group_box.currentData(Qt.ItemDataRole.UserRole)
-        if not isinstance(selected_data, dict):
-            return
-
-        selected_relation = selected_data.get("group_relation")
-        if selected_relation in ("or", "and"):
-            self.group_relation.setCurrentText(selected_relation)
+    def _split_group_text(self, raw_text: str) -> tuple[str, str | None]:
+        text = raw_text.strip()
+        if text.endswith(")") and " (" in text:
+            name_part, relation_part = text.rsplit(" (", 1)
+            relation = relation_part[:-1].strip().lower()
+            if relation in ("or", "and"):
+                return name_part.strip(), relation
+        return text, None
 
     def load_fields_for_event(self) -> None:
         from data.sysmon_fields import SYS_MON_FIELDS
@@ -167,12 +184,14 @@ class RuleEditor(QWidget):
     def load_value_presets_for_field(self, field_name: str) -> None:
         from data.sysmon_value_presets import SYS_MON_VALUE_PRESETS
 
+        typed_value = self.value_preset_box.currentText()
         self.value_preset_box.clear()
         self.value_preset_box.addItem("")
 
         presets = SYS_MON_VALUE_PRESETS.get(field_name, [])
         if presets:
             self.value_preset_box.addItems(presets)
+        self.value_preset_box.setCurrentText(typed_value)
 
     def refresh_rules(self) -> None:
         self.rule_tree.clear()
@@ -212,6 +231,11 @@ class RuleEditor(QWidget):
             )
             event_item.setTextAlignment(1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             event_item.setForeground(1, QColor("#90ee90"))  # light green counts
+            event_item.setData(
+                0,
+                self.tree_meta_role,
+                {"kind": "event", "event_id": event_id},
+            )
             self.rule_tree.addTopLevelItem(event_item)
 
             grouped_parents: dict[str, QTreeWidgetItem] = {}
@@ -226,11 +250,26 @@ class RuleEditor(QWidget):
                         grouped_parents[rule.group_id] = QTreeWidgetItem(
                             [f"Rule: {group_name} ({group_relation})", ""]
                         )
+                        grouped_parents[rule.group_id].setData(
+                            0,
+                            self.tree_meta_role,
+                            {
+                                "kind": "group",
+                                "event_id": event_id,
+                                "group_name": group_name,
+                                "group_relation": group_relation,
+                            },
+                        )
                         event_item.addChild(grouped_parents[rule.group_id])
                     parent_item = grouped_parents[rule.group_id]
                 else:
                     if ungrouped_parent is None:
                         ungrouped_parent = QTreeWidgetItem(["Ungrouped Rules", ""])
+                        ungrouped_parent.setData(
+                            0,
+                            self.tree_meta_role,
+                            {"kind": "ungrouped", "event_id": event_id},
+                        )
                         event_item.addChild(ungrouped_parent)
                     parent_item = ungrouped_parent
 
@@ -243,6 +282,11 @@ class RuleEditor(QWidget):
                 )
                 item = QTreeWidgetItem([rule_text, ""])
                 item.setData(0, Qt.ItemDataRole.UserRole, (event_id, rule_index))
+                item.setData(
+                    0,
+                    self.tree_meta_role,
+                    {"kind": "rule", "event_id": event_id, "rule_index": rule_index},
+                )
 
                 if not rule.imported:
                     item.setBackground(0, QColor("#ffe6cc"))  # light orange
@@ -257,14 +301,60 @@ class RuleEditor(QWidget):
             f'Total Exclude <span style="color:#90ee90">({total_exclude})</span>'
         )
 
+    def on_rule_tree_item_clicked(self, item: QTreeWidgetItem, _column: int) -> None:
+        meta = item.data(0, self.tree_meta_role)
+        if not isinstance(meta, dict):
+            return
+
+        kind = meta.get("kind")
+        event_id = meta.get("event_id")
+        if not isinstance(event_id, int):
+            return
+
+        event_config = self.config.events.get(event_id)
+        if event_config is None:
+            return
+
+        self._set_active_event(event_id, event_config.event_name)
+
+        if kind == "group":
+            group_name = (meta.get("group_name") or "").strip()
+            group_relation = (meta.get("group_relation") or "or").strip().lower()
+            if group_name:
+                self.group_box.setEditText(f"{group_name} ({group_relation})")
+            else:
+                self.group_box.setEditText("")
+            if group_relation in ("or", "and"):
+                self.group_relation.setCurrentText(group_relation)
+            return
+
+        if kind != "rule":
+            return
+
+        rule_index = meta.get("rule_index")
+        if not isinstance(rule_index, int) or not (0 <= rule_index < len(event_config.rules)):
+            return
+
+        rule = event_config.rules[rule_index]
+        self.rule_type.setCurrentText(rule.rule_type)
+        self.field_box.setCurrentText(rule.field_name)
+        self.condition_box.setCurrentText(rule.condition)
+
+        if rule.group_name:
+            relation = rule.group_relation or "or"
+            self.group_box.setEditText(f"{rule.group_name} ({relation})")
+            if relation in ("or", "and"):
+                self.group_relation.setCurrentText(relation)
+        else:
+            self.group_box.setEditText("")
+
+        self.value_preset_box.setCurrentText(rule.value)
+
     def add_rule(self) -> None:
         if self.current_event_id is None:
             return
 
-        custom_value = self.value_input.text().strip()
-        preset_value = self.value_preset_box.currentText().strip()
-
-        value = custom_value if custom_value else preset_value
+        value = self.value_preset_box.currentText().strip()
         if not value:
             return
 
@@ -273,30 +363,30 @@ class RuleEditor(QWidget):
             self.current_event_name,
         )
 
-        selected_group_data = self.group_box.currentData(Qt.ItemDataRole.UserRole)
         selected_group_text = self.group_box.currentText().strip()
+        selected_group_name, selected_group_relation = self._split_group_text(selected_group_text)
 
         group_id: str | None = None
         group_name: str | None = None
         group_relation: str | None = None
 
-        if isinstance(selected_group_data, dict):
-            group_id = selected_group_data.get("group_id")
-            group_name = selected_group_data.get("group_name")
-            group_relation = selected_group_data.get("group_relation")
-        elif selected_group_text:
+        if selected_group_name:
             existing_group = None
             for existing_rule in event_config.rules:
                 if not existing_rule.group_id:
                     continue
-                if (existing_rule.group_name or "").strip().lower() == selected_group_text.lower():
+                if (existing_rule.group_name or "").strip().lower() == selected_group_name.lower():
                     existing_group = existing_rule
                     break
 
             if existing_group is not None:
                 group_id = existing_group.group_id
                 group_name = existing_group.group_name
-                group_relation = existing_group.group_relation or self.group_relation.currentText()
+                group_relation = (
+                    existing_group.group_relation
+                    or selected_group_relation
+                    or self.group_relation.currentText()
+                )
             else:
                 existing_ids = {
                     existing_rule.group_id
@@ -309,8 +399,8 @@ class RuleEditor(QWidget):
                     next_index += 1
                     group_id = f"user-group-{next_index}"
 
-                group_name = selected_group_text
-                group_relation = self.group_relation.currentText()
+                group_name = selected_group_name
+                group_relation = selected_group_relation or self.group_relation.currentText()
 
         event_config.rules.append(
             RuleFilter(
@@ -324,8 +414,7 @@ class RuleEditor(QWidget):
             )
         )
 
-        self.value_input.clear()
-        self.value_preset_box.setCurrentIndex(0)
+        self.value_preset_box.setEditText("")
         self.refresh_group_options()
         self.refresh_rules()
 
