@@ -11,7 +11,6 @@
     <a title="Code Size" target="_blank" href="https://github.com/infinit3i/sysmon-builder"><img src="https://img.shields.io/github/languages/code-size/infinit3i/sysmon-builder.svg?style=flat-square&color=yellow"></a>
   <br>
     <a title="GitHub Stars" target="_blank" href="https://github.com/Infinit3i/sysmon-builder/stargazers"><img src="https://img.shields.io/github/stars/Infinit3i/sysmon-builder.svg?style=flat-square&color=brightgreen"></a>
-    <a title="GitHub Pull Requests" target="_blank" href="https://github.com/infinit3i/sysmon-builder/pulls"><img src="https://img.shields.io/github/issues-pr-closed/infinit3i/sysmon-builder.svg?style=flat-square&color=FF9966"></a>
     <a title="GitHub Commits" target="_blank" href="https://github.com/infinit3i/sysmon-builder/commits/master"><img src="https://img.shields.io/github/commit-activity/m/infinit3i/sysmon-builder.svg?style=flat-square"></a>
     <a title="Last Commit" target="_blank" href="https://github.com/infinit3i/sysmon-builder/commits/master"><img src="https://img.shields.io/github/last-commit/infinit3i/sysmon-builder.svg?style=flat-square&color=FF9900"></a>
 
@@ -79,14 +78,21 @@ If you want to run the project directly from source.
 * Python 3.11+
 * PySide6
 
-Install dependencies:
+Setup virtual environment
+`python -m venv sysmon`
 
+(LINUX) activate virtual environment
+`source venv/bin/activate`
+
+(WINDOWS) activate virtual environment
+`venv\Scripts\activate`
+
+Install dependencies:
 ```bash
-pip install PySide6
+pip install -r requirements
 ```
 
 Run the application:
-
 ```bash
 python main.py
 ```
