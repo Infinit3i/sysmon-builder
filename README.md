@@ -1,1 +1,80 @@
-WUBBA-LUBBA-DUB-DUB
+```markdown
+# Sysmon Config Builder
+
+Sysmon Config Builder is a GUI tool for creating, editing, importing, and exporting **Microsoft Sysmon configuration files**. It allows users to construct event filtering rules without manually editing XML, making it easier to build and maintain custom Sysmon configurations.
+
+## Features
+
+- Import existing Sysmon configuration XML files
+- Create and modify Sysmon event filtering rules
+- Support for all Sysmon Event IDs (1–30)
+- Field-aware rule creation based on event type
+- Preset values for common binaries and processes
+- Export valid Sysmon XML configurations
+- Cross-platform GUI built with PySide6
+
+## Running the Application (Recommended)
+
+Pre-built releases are available on the **Releases** page.
+
+1. Download the latest release archive for your platform:
+   - `sysmon-builder-windows.zip`
+   - `sysmon-builder-linux.tar.gz`
+
+2. Extract the archive.
+
+3. Run the application:
+
+**Windows**
+
+Run:
+
+```
+dist/sysmon-builder/sysmon-builder.exe
+````
+
+or double-click `sysmon-builder.exe`.
+
+**Linux**
+
+Run:
+
+```bash
+./sysmon-builder
+````
+
+No Python installation is required when using the packaged release.
+
+## Running From Source
+
+If you want to run the project directly from source.
+
+### Requirements
+
+* Python 3.11+
+* PySide6
+
+Install dependencies:
+
+```bash
+pip install PySide6
+```
+
+Run the application:
+
+```bash
+python main.py
+```
+
+## Usage
+
+1. Select a Sysmon event from the event list.
+2. Choose rule parameters:
+
+   * Rule type (`include` or `exclude`)
+   * Field
+   * Condition
+   * Value (preset or custom)
+3. Add rules to build the configuration.
+4. Import an existing Sysmon XML configuration if desired.
+5. Export the configuration to a new XML file.
