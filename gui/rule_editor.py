@@ -6,11 +6,12 @@ from PySide6.QtWidgets import (
     QComboBox,
     QLineEdit,
     QPushButton,
-    QListWidget,
-    QListWidgetItem,
+    QTreeWidget,
+    QTreeWidgetItem,
 )
 from models.sysmon_config import RuleFilter, SysmonConfig
 from PySide6.QtGui import QColor
+from PySide6.QtCore import Qt
 
 
 class RuleEditor(QWidget):
@@ -20,7 +21,6 @@ class RuleEditor(QWidget):
         self.config = config
         self.current_event_id: int | None = None
         self.current_event_name: str = ""
-        self.displayed_rules: list[tuple[int, int]] = []
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -44,7 +44,8 @@ class RuleEditor(QWidget):
         self.add_button = QPushButton("Add Rule")
         self.remove_button = QPushButton("Remove Selected Rule")
 
-        self.rule_list = QListWidget()
+        self.rule_tree = QTreeWidget()
+        self.rule_tree.setHeaderHidden(True)
 
         self.rule_row_1 = QHBoxLayout()
         self.rule_row_1.addWidget(self.rule_type)
@@ -60,7 +61,7 @@ class RuleEditor(QWidget):
         self.layout.addLayout(self.rule_row_2)
         self.layout.addWidget(self.add_button)
         self.layout.addWidget(self.remove_button)
-        self.layout.addWidget(self.rule_list)
+        self.layout.addWidget(self.rule_tree)
 
         self.add_button.clicked.connect(self.add_rule)
         self.remove_button.clicked.connect(self.remove_selected_rule)
@@ -103,11 +104,36 @@ class RuleEditor(QWidget):
             self.value_preset_box.addItems(presets)
 
     def refresh_rules(self) -> None:
-        self.rule_list.clear()
-        self.displayed_rules.clear()
+        self.rule_tree.clear()
 
         for event_id, event_config in sorted(self.config.events.items()):
+            if not event_config.rules:
+                continue
+
+            event_item = QTreeWidgetItem(
+                [f"{event_id} - {event_config.event_name}"]
+            )
+            self.rule_tree.addTopLevelItem(event_item)
+
+            grouped_parents: dict[str, QTreeWidgetItem] = {}
+            ungrouped_parent: QTreeWidgetItem | None = None
+
             for rule_index, rule in enumerate(event_config.rules):
+                if rule.group_id:
+                    if rule.group_id not in grouped_parents:
+                        group_name = rule.group_name or "Imported Rule"
+                        group_relation = rule.group_relation or "or"
+                        grouped_parents[rule.group_id] = QTreeWidgetItem(
+                            [f"Rule: {group_name} ({group_relation})"]
+                        )
+                        event_item.addChild(grouped_parents[rule.group_id])
+                    parent_item = grouped_parents[rule.group_id]
+                else:
+                    if ungrouped_parent is None:
+                        ungrouped_parent = QTreeWidgetItem(["Ungrouped Rules"])
+                        event_item.addChild(ungrouped_parent)
+                    parent_item = ungrouped_parent
+
                 rule_text = (
                     f"{event_id} | "
                     f"{rule.rule_type} | "
@@ -115,13 +141,17 @@ class RuleEditor(QWidget):
                     f"{rule.condition} | "
                     f"{rule.value}"
                 )
-                item = QListWidgetItem(rule_text)
+                item = QTreeWidgetItem([rule_text])
+                item.setData(0, Qt.ItemDataRole.UserRole, (event_id, rule_index))
 
                 if not rule.imported:
-                    item.setBackground(QColor("#ffe6cc"))  # light orange
+                    item.setBackground(0, QColor("#ffe6cc"))  # light orange
 
-                self.rule_list.addItem(item)
-                self.displayed_rules.append((event_id, rule_index))
+                parent_item.addChild(item)
+
+            event_item.setExpanded(True)
+
+        self.rule_tree.expandAll()
 
     def add_rule(self) -> None:
         if self.current_event_id is None:
@@ -156,14 +186,15 @@ class RuleEditor(QWidget):
         if self.current_event_id is None:
             return
 
-        selected_row = self.rule_list.currentRow()
-        if selected_row < 0:
+        selected_item = self.rule_tree.currentItem()
+        if selected_item is None:
             return
 
-        if selected_row >= len(self.displayed_rules):
+        rule_key = selected_item.data(0, Qt.ItemDataRole.UserRole)
+        if not isinstance(rule_key, tuple) or len(rule_key) != 2:
             return
 
-        event_id, rule_index = self.displayed_rules[selected_row]
+        event_id, rule_index = rule_key
         event_config = self.config.events.get(event_id)
 
         if event_config is None:

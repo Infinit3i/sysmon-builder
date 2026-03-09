@@ -1,25 +1,25 @@
 SYS_MON_EVENTS: dict[int, str] = {
     1: "Process Create",
-    2: "File Creation Time Changed",
-    3: "Network Connection",
-    4: "Sysmon Service State Changed",
-    5: "Process Terminated",
-    6: "Driver Loaded",
-    7: "Image Loaded",
+    2: "File Create Time",
+    3: "Network Connect",
+    4: "Sysmon State Change",
+    5: "Process Terminate",
+    6: "Driver Load",
+    7: "Image Load",
     8: "CreateRemoteThread",
     9: "RawAccessRead",
     10: "Process Access",
     11: "File Create",
-    12: "Registry Object Added or Deleted",
-    13: "Registry Value Set",
-    14: "Registry Key or Value Renamed",
+    12: "Registry Event",
+    13: "Registry Event",
+    14: "Registry Event",
     15: "File Create Stream Hash",
     16: "Sysmon Config State Changed",
-    17: "Pipe Created",
-    18: "Pipe Connected",
-    19: "WMI Event Filter",
-    20: "WMI Event Consumer",
-    21: "WMI Event Consumer To Filter",
+    17: "Pipe Event",
+    18: "Pipe Event",
+    19: "Wmi Event",
+    20: "Wmi Event",
+    21: "Wmi Event",
     22: "DNS Query",
     23: "File Delete",
     24: "Clipboard Change",
@@ -31,6 +31,9 @@ SYS_MON_EVENTS: dict[int, str] = {
     30: "File Blocked",
 }
 
+def _normalize(tag: str) -> str:
+    return tag.replace(" ", "").lower()
+
 
 def get_event_xml_tag(event_id: int) -> str:
     name = SYS_MON_EVENTS.get(event_id, f"Event{event_id}")
@@ -38,10 +41,10 @@ def get_event_xml_tag(event_id: int) -> str:
 
 
 def get_event_id_from_xml_tag(xml_tag: str) -> int | None:
-    normalized = xml_tag.replace(" ", "").lower()
+    normalized = _normalize(xml_tag)
 
     for event_id in SYS_MON_EVENTS:
-        if get_event_xml_tag(event_id).lower() == normalized:
+        if _normalize(get_event_xml_tag(event_id)) == normalized:
             return event_id
 
     return None

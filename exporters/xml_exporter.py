@@ -46,13 +46,44 @@ def export_config(config: SysmonConfig, output_path: str) -> None:
                 attrib={"onmatch": rule_type},
             )
 
+            emitted_groups: set[str] = set()
+            grouped_rule_members: dict[str, list] = {}
+
             for rule in rules:
-                field_element = ET.SubElement(
-                    event_element,
-                    rule.field_name,
-                    attrib={"condition": rule.condition},
-                )
-                field_element.text = rule.value
+                if rule.group_id:
+                    grouped_rule_members.setdefault(rule.group_id, []).append(rule)
+
+            for rule in rules:
+                if not rule.group_id:
+                    field_element = ET.SubElement(
+                        event_element,
+                        rule.field_name,
+                        attrib={"condition": rule.condition},
+                    )
+                    field_element.text = rule.value
+                    continue
+
+                if rule.group_id in emitted_groups:
+                    continue
+
+                group_rules = grouped_rule_members.get(rule.group_id, [rule])
+                group_attrs: dict[str, str] = {}
+                if rule.group_name:
+                    group_attrs["name"] = rule.group_name
+                if rule.group_relation:
+                    group_attrs["groupRelation"] = rule.group_relation
+
+                rule_group_element = ET.SubElement(event_element, "Rule", attrib=group_attrs)
+
+                for grouped_rule in group_rules:
+                    field_element = ET.SubElement(
+                        rule_group_element,
+                        grouped_rule.field_name,
+                        attrib={"condition": grouped_rule.condition},
+                    )
+                    field_element.text = grouped_rule.value
+
+                emitted_groups.add(rule.group_id)
 
     xml_output: str = prettify_xml(root)
 

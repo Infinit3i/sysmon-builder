@@ -9,6 +9,9 @@ class RuleFilter:
     condition: str
     value: str
     imported: bool = False
+    group_id: str | None = None
+    group_relation: str | None = None
+    group_name: str | None = None
 
 
 @dataclass
