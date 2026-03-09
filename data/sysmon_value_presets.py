@@ -1,117 +1,146 @@
 SYS_MON_VALUE_PRESETS: dict[str, list[str]] = {
     "Image": [
-        "powershell.exe",
-        "powershell_ise.exe",
-        "pwsh.exe",
-        "cmd.exe",
-        "wscript.exe",
-        "cscript.exe",
-        "mshta.exe",
-        "rundll32.exe",
-        "regsvr32.exe",
-        "regsvcs.exe",
-        "regasm.exe",
-        "certutil.exe",
-        "bitsadmin.exe",
-        "wmic.exe",
-        "schtasks.exe",
-        "at.exe",
-        "net.exe",
-        "net1.exe",
-        "whoami.exe",
-        "ipconfig.exe",
-        "nslookup.exe",
-        "nltest.exe",
-        "netstat.exe",
-        "tasklist.exe",
-        "qprocess.exe",
-        "qwinsta.exe",
-        "rwinsta.exe",
-        "quser.exe",
-        "runas.exe",
-        "curl.exe",
-        "wget.exe",
-        "ftp.exe",
-        "winrs.exe",
-        "wsmprovhost.exe",
-        "winrshost.exe",
-        "mofcomp.exe",
-        "wmiprvse.exe",
-        "scrcons.exe",
-        "pcalua.exe",
-        "bash.exe",
-        "hh.exe",
-        "installutil.exe",
-        "msbuild.exe",
-        "msiexec.exe",
-        "odbcconf.exe",
-        "desktopimgdownldr.exe",
-        "replace.exe",
-        "diskshadow.exe",
-        "esentutl.exe",
-        "ntdsutil.exe",
-        "rpcping.exe",
-        "vssadmin.exe",
-        "wbadmin.exe",
-        "bcdedit.exe",
-        "wevtutil.exe",
-        "fsutil.exe",
-        "dnscmd.exe",
-        "sc.exe",
-        "taskkill.exe",
-        "xcopy.exe",
-        "robocopy.exe",
-        "PktMon.exe",
-        "PsExec.exe",
+        "powershell.exe",              # Windows PowerShell interpreter (commonly abused for execution and download cradles)
+        "powershell_ise.exe",          # PowerShell Integrated Scripting Environment
+        "pwsh.exe",                    # PowerShell Core (cross-platform PowerShell)
+        "cmd.exe",                     # Windows command interpreter
+        "wscript.exe",                 # Windows Script Host (GUI)
+        "cscript.exe",                 # Windows Script Host (CLI)
+        "mshta.exe",                   # Executes HTA files (frequently abused LOLBin)
+        "rundll32.exe",                # Executes exported DLL functions (common living-off-the-land technique)
+        "regsvr32.exe",                # Registers COM objects (often abused to load remote scripts)
+        "regsvcs.exe",                 # .NET service registration utility
+        "regasm.exe",                  # Registers .NET assemblies
+        "certutil.exe",                # Certificate utility often abused for file download/encoding
+        "bitsadmin.exe",               # BITS download tool (used for persistence and file staging)
+        "wmic.exe",                    # Windows Management Instrumentation CLI
+        "schtasks.exe",                # Scheduled task management (persistence technique)
+        "at.exe",                      # Legacy scheduled task tool
+        "net.exe",                     # Windows networking command utility
+        "net1.exe",                    # Alternative version of net.exe
+        "whoami.exe",                  # Displays current user identity
+        "ipconfig.exe",                # Network configuration display
+        "nslookup.exe",                # DNS lookup tool
+        "nltest.exe",                  # Active Directory domain controller testing
+        "netstat.exe",                 # Displays network connections
+        "tasklist.exe",                # Lists running processes
+        "qprocess.exe",                # Displays processes on RDS servers
+        "qwinsta.exe",                 # Query terminal sessions
+        "rwinsta.exe",                 # Reset terminal session
+        "quser.exe",                   # Query logged-in users
+        "runas.exe",                   # Execute program as another user
+        "curl.exe",                    # HTTP transfer tool
+        "wget.exe",                    # HTTP download utility
+        "ftp.exe",                     # FTP client
+        "winrs.exe",                   # Windows Remote Shell
+        "wsmprovhost.exe",             # WinRM provider host
+        "winrshost.exe",               # WinRM command host
+        "mofcomp.exe",                 # WMI MOF compiler (persistence vector)
+        "wmiprvse.exe",                # WMI provider host process
+        "scrcons.exe",                 # WMI script consumer
+        "pcalua.exe",                  # Program compatibility assistant launcher
+        "bash.exe",                    # Windows Subsystem for Linux launcher
+        "hh.exe",                      # HTML help viewer (used in LOLBin chains)
+        "installutil.exe",             # .NET installer utility (commonly abused)
+        "msbuild.exe",                 # Microsoft build engine (used for code execution)
+        "msiexec.exe",                 # Windows installer execution engine
+        "odbcconf.exe",                # ODBC configuration tool
+        "desktopimgdownldr.exe",       # Desktop image downloader (LOLBin abuse)
+        "replace.exe",                 # Replace files utility
+        "diskshadow.exe",              # VSS snapshot tool
+        "esentutl.exe",                # Extensible storage engine utility
+        "ntdsutil.exe",                # Active Directory database maintenance tool
+        "rpcping.exe",                 # RPC connectivity testing tool
+        "vssadmin.exe",                # Volume shadow copy management
+        "wbadmin.exe",                 # Backup utility
+        "bcdedit.exe",                 # Boot configuration editor
+        "wevtutil.exe",                # Windows event log management tool
+        "fsutil.exe",                  # File system utility
+        "dnscmd.exe",                  # DNS server management tool
+        "sc.exe",                      # Windows service controller
+        "taskkill.exe",                # Process termination utility
+        "xcopy.exe",                   # File copy utility
+        "robocopy.exe",                # Advanced file copy utility
+        "PktMon.exe",                  # Windows packet monitor
+        "PsExec.exe",                  # Sysinternals remote execution tool
         "PsExec.c",
-        "PsList.exe",
-        "PsService.exe",
-        "PsGetSID.exe",
-        "PsKill.exe",
-        "PsLoggedOn.exe",
-        "PsFile.exe",
-        "PipeList.exe",
-        "AccessChk.exe",
-        "AccessEnum.exe",
-        "LogonSessions.exe",
-        "PsLogList.exe",
-        "PsInfo.exe",
-        "PsPasswd.exe",
-        "ProcDump.exe",
+        "PsList.exe",                  # Sysinternals process listing tool
+        "PsService.exe",               # Sysinternals service management tool
+        "PsGetSID.exe",                # Sysinternals SID lookup
+        "PsKill.exe",                  # Sysinternals process killer
+        "PsLoggedOn.exe",              # Sysinternals user session viewer
+        "PsFile.exe",                  # Sysinternals open file viewer
+        "PipeList.exe",                # Sysinternals named pipe viewer
+        "AccessChk.exe",               # Sysinternals permission auditing tool
+        "AccessEnum.exe",              # Sysinternals access enumeration tool
+        "LogonSessions.exe",           # Sysinternals logon session viewer
+        "PsLogList.exe",               # Sysinternals event log viewer
+        "PsInfo.exe",                  # Sysinternals system information tool
+        "PsPasswd.exe",                # Sysinternals password reset tool
+        "ProcDump.exe",                # Sysinternals process dump utility
         "procdump.exe",
-        "chrome.exe",
-        "firefox.exe",
-        "msedge.exe",
-        "iexplore.exe",
-        "outlook.exe",
-        "winword.exe",
-        "excel.exe",
-        "powerpnt.exe",
-        "onenote.exe",
-        "msaccess.exe",
-        "teams.exe",
-        "discord.exe",
-        "svchost.exe",
-        "java.exe",
-        "javaw.exe",
-        "javaws.exe",
-        "notepad.exe",
-        "mmc.exe",
-        "explorer.exe",
-        "svchost.exe",
-        "services.exe",
-        "lsass.exe",
-        "dllhost.exe",
-        "tor.exe",
-        "software_reporter_tool.exe",
-        "OneDrive.exe",
-        "OneDriveStandaloneUpdater.exe",
-        "Dropbox.exe",
-        "spotify.exe",
-        "splunk.exe",
-        "splunkd.exe",
-        "winlogbeat.exe",
-        "packetbeat.exe",
+        "chrome.exe",                  # Google Chrome browser
+        "firefox.exe",                 # Mozilla Firefox browser
+        "msedge.exe",                  # Microsoft Edge browser
+        "iexplore.exe",                # Internet Explorer
+        "outlook.exe",                 # Microsoft Outlook
+        "winword.exe",                 # Microsoft Word
+        "excel.exe",                   # Microsoft Excel
+        "powerpnt.exe",                # Microsoft PowerPoint
+        "onenote.exe",                 # Microsoft OneNote
+        "msaccess.exe",                # Microsoft Access
+        "teams.exe",                   # Microsoft Teams
+        "discord.exe",                 # Discord client
+        "java.exe",                    # Java runtime launcher
+        "javaw.exe",                   # Java runtime launcher (no console)
+        "javaws.exe",                  # Java Web Start
+        "notepad.exe",                 # Windows text editor
+        "mmc.exe",                     # Microsoft Management Console
+        "explorer.exe",                # Windows shell
+        "services.exe",                # Windows service control manager
+        "svchost.exe",                 # Generic service host
+        "lsass.exe",                   # Local Security Authority subsystem
+        "dllhost.exe",                 # COM surrogate host
+        "tor.exe",                     # Tor network client
+        "software_reporter_tool.exe",  # Chrome cleanup/reporting tool
+        "OneDrive.exe",                # Microsoft OneDrive client
+        "OneDriveStandaloneUpdater.exe", # OneDrive updater
+        "Dropbox.exe",                 # Dropbox client
+        "spotify.exe",                 # Spotify client
+        "splunk.exe",                  # Splunk CLI
+        "splunkd.exe",                 # Splunk daemon
+        "winlogbeat.exe",              # Elastic Windows log shipper
+        "packetbeat.exe",              # Elastic network data shipper
+            "procexp.exe",                 # Sysinternals Process Explorer
+        "procmon.exe",                 # Sysinternals Process Monitor
+        "tcpview.exe",                 # Sysinternals TCP connection viewer
+        "autoruns.exe",                # Sysinternals persistence inspection tool
+        "sigcheck.exe",                # Sysinternals file signature checker
+        "strings.exe",                 # Sysinternals string extraction tool
+        "handle.exe",                  # Sysinternals open handle viewer
+        "vmmap.exe",                   # Sysinternals virtual memory inspector
+        "rammap.exe",                  # Sysinternals memory analysis tool
+        "bginfo.exe",                  # Sysinternals desktop system info display
+        "livekd.exe",                  # Sysinternals kernel debugging tool
+        "klist.exe",                   # Kerberos ticket viewer
+        "ktpass.exe",                  # Kerberos service principal management
+        "setspn.exe",                  # Service principal name configuration tool
+        "dsquery.exe",                 # Active Directory query tool
+        "dsget.exe",                   # Active Directory object information tool
+        "dsadd.exe",                   # Active Directory object creation tool
+        "dsmod.exe",                   # Active Directory object modification tool
+        "dsrm.exe",                    # Active Directory object deletion tool
+        "gpupdate.exe",                # Group policy update tool
+        "gpresult.exe",                # Group policy result viewer
+        "logoff.exe",                  # Logs off a user session
+        "shutdown.exe",                # Shutdown or reboot system
+        "takeown.exe",                 # Take ownership of files
+        "icacls.exe",                  # Modify file ACL permissions
+        "attrib.exe",                  # Change file attributes
+        "timeout.exe",                 # Command line delay utility
+        "choice.exe",                  # Command-line prompt selection tool
+        "where.exe",                   # Locate executable paths
+        "hostname.exe",                # Display system hostname
     ],
     "ParentImage": [
         "explorer.exe",
@@ -263,10 +292,38 @@ SYS_MON_VALUE_PRESETS: dict[str, list[str]] = {
         "31337",
     ],
     "DestinationIp": [
-        "127.0.0.1",
-        "0.0.0.0",
-        "8.8.8.8",
-        "1.1.1.1",
+        "127.0.0.1",        # localhost
+        "0.0.0.0",          # wildcard address
+        "8.8.8.8",          # Google DNS
+        "1.1.1.1",          # Cloudflare DNS
+
+        "8.8.4.4",          # Google secondary DNS
+        "9.9.9.9",          # Quad9 DNS
+        "149.112.112.112",  # Quad9 secondary DNS
+        "208.67.222.222",   # OpenDNS
+        "208.67.220.220",   # OpenDNS secondary
+        "4.2.2.2",          # Level3 DNS
+        "4.2.2.1",          # Level3 DNS
+        "4.2.2.3",          # Level3 DNS
+        "4.2.2.4",          # Level3 DNS
+        "4.2.2.5",          # Level3 DNS
+        "4.2.2.6",          # Level3 DNS
+        "64.6.64.6",        # Verisign DNS
+        "64.6.65.6",        # Verisign secondary DNS
+        "94.140.14.14",     # AdGuard DNS
+        "94.140.15.15",     # AdGuard secondary DNS
+        "76.76.19.19",      # ControlD DNS
+        "76.223.122.150",   # ControlD secondary DNS
+        "185.228.168.9",    # CleanBrowsing DNS
+        "185.228.169.9",    # CleanBrowsing secondary
+        "198.101.242.72",   # Dyn DNS
+        "156.154.70.1",     # Neustar DNS
+        "156.154.71.1",     # Neustar secondary
+        "192.168.1.1",      # common home router
+        "192.168.0.1",      # common home router
+        "10.0.0.1",         # internal gateway
+        "172.16.0.1",       # internal gateway
+        "169.254.169.254",  # cloud metadata service (AWS/Azure/GCP)
     ],
     "DestinationHostname": [
         ".windowsupdate.microsoft.com",
@@ -316,22 +373,48 @@ SYS_MON_VALUE_PRESETS: dict[str, list[str]] = {
         "vbscript.dll",
     ],
     "TargetFilename": [
-        ".exe",
-        ".dll",
-        ".ps1",
-        ".vbs",
-        ".js",
-        ".hta",
-        ".bat",
-        ".cmd",
-        ".scr",
-        ".zip",
-        ".rar",
-        ".wll",
-        ".xll",
-        "C:\\Windows\\AppPatch\\Custom",
-        "C:\\Windows\\AppPatch\\Custom\\Custom64",
-        "Zone.Identifier",
+        ".exe",                         # executable file
+        ".dll",                         # dynamic library
+        ".ps1",                         # PowerShell script
+        ".vbs",                         # VBScript
+        ".js",                          # JavaScript
+        ".hta",                         # HTML application
+        ".bat",                         # batch script
+        ".cmd",                         # command script
+        ".scr",                         # screensaver executable
+        ".zip",                         # compressed archive
+        ".rar",                         # compressed archive
+        ".wll",                         # Word add-in
+        ".xll",                         # Excel add-in
+        "C:\\Windows\\AppPatch\\Custom",             # Application Compatibility persistence location
+        "C:\\Windows\\AppPatch\\Custom\\Custom64",   # 64-bit AppPatch persistence path
+        "Zone.Identifier",              # Mark-of-the-Web ADS
+        ".7z",                          # compressed archive
+        ".iso",                         # disk image often used for malware delivery
+        ".img",                         # disk image
+        ".cab",                         # cabinet archive
+        ".msi",                         # Windows installer package
+        ".lnk",                         # Windows shortcut (frequently abused for execution)
+        ".pif",                         # legacy program information file
+        ".application",                 # ClickOnce deployment file
+        ".jar",                         # Java archive
+        ".class",                       # Java bytecode file
+        ".sys",                         # driver file
+        ".dat",                         # generic data file often used for payload storage
+        ".tmp",                         # temporary file used in staging payloads
+        ".config",                      # .NET configuration files
+        ".manifest",                    # application manifest
+        ".psm1",                        # PowerShell module
+        ".psd1",                        # PowerShell module manifest
+        ".chm",                         # compiled help file used for code execution
+        ".ocx",                         # COM control
+        ".drv",                         # driver file
+        ".cpl",                         # Control Panel item
+        ".msc",                         # Microsoft Management Console snap-in
+        "C:\\Users\\Public",            # common attacker staging directory
+        "C:\\ProgramData",              # hidden system-wide writable location
+        "C:\\Windows\\Temp",            # system temp directory
+        "%TEMP%",                       # user temp directory
     ],
     "TargetObject": [
         "Run",
