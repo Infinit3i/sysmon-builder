@@ -30,16 +30,6 @@ Sysmon Config Builder is a GUI tool for creating, editing, importing, and export
 
 ## Download
 
-Pre-built releases are available on the **Releases** page.
-
-1. Download the latest release archive for your platform:
-   - `sysmon-builder-windows.zip`
-   - `sysmon-builder-linux.tar.gz`
-
-2. Extract the archive.
-
-3. Run the application:
-
 ### **Windows**
 
 [![Download Windows](https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge)](https://github.com/Infinit3i/sysmon-builder/releases/latest/download/sysmon-builder-windows.zip)
@@ -47,7 +37,6 @@ Pre-built releases are available on the **Releases** page.
 `unzip sysmon-builder-windows.zip`
 
 Run:
-
 ```
 dist/sysmon-builder/sysmon-builder.exe
 ```
@@ -58,11 +47,9 @@ or double-click `sysmon-builder.exe`.
 
 [![Download Linux](https://img.shields.io/badge/Download-Linux-orange?style=for-the-badge)](https://github.com/Infinit3i/sysmon-builder/releases/latest/download/sysmon-builder-linux.tar.gz)
 
-`tar -xzvf sysmon-builder-linux.tar.gz`
-
+```tar -xzvf sysmon-builder-linux.tar.gz```
 
 Run:
-
 ```bash
 ./sysmon-builder
 ````
