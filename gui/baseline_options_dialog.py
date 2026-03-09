@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from data.sysmon_events import SYS_MON_EVENTS
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -14,6 +15,39 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+EVENT_TOOLTIP_HINTS: dict[int, str] = {
+    1: "Most teams baseline then include trusted images/parents and alert on unknown executions.",
+    2: "Often excluded unless investigating timestomping; can be noisy in some environments.",
+    3: "Commonly include known-good outbound destinations and ports, then watch for anomalies.",
+    4: "Usually low volume; often included for operational visibility.",
+    5: "Frequently optional; used when process lifecycle visibility is needed.",
+    6: "Typically monitored for unexpected/unsigned driver loads.",
+    7: "Can be noisy; usually scoped to high-value processes.",
+    8: "Commonly monitored for injection-like behavior.",
+    9: "Often enabled selectively for specific hosts/use-cases.",
+    10: "Frequently monitored for suspicious process access patterns.",
+    11: "Commonly used to baseline file create paths and startup locations.",
+    12: "Registry events are usually path-scoped to reduce noise.",
+    13: "Often path-focused; many teams exclude known-good repetitive values.",
+    14: "Used with 12/13 for registry rename/change visibility.",
+    15: "Often enabled for targeted paths due to volume.",
+    16: "Usually included to detect Sysmon config changes.",
+    17: "Named pipes are often baseline-driven with allow/deny tuning.",
+    18: "Named pipes are often baseline-driven with allow/deny tuning.",
+    19: "WMI events are high value for persistence and execution monitoring.",
+    20: "WMI events are high value for persistence and execution monitoring.",
+    21: "WMI events are high value for persistence and execution monitoring.",
+    22: "DNS can be noisy; most teams baseline domains and monitor outliers.",
+    23: "Used for delete tracking in sensitive paths.",
+    24: "Clipboard is usually enabled for specific monitoring objectives.",
+    25: "Generally high-signal for process tampering behaviors.",
+    26: "Used where delete-detection policy matters for investigations.",
+    27: "Used when executable blocking telemetry is required.",
+    28: "Used when shredding/block events are in policy scope.",
+    29: "Used when executable detection/block telemetry is needed.",
+    30: "Used when blocking/defense telemetry is needed.",
+}
 
 
 @dataclass
@@ -46,15 +80,12 @@ class BaselineOptionsDialog(QDialog):
         self.source_scheduled_tasks.setChecked(True)
         self.source_registry = QCheckBox("Registry")
         self.source_registry.setChecked(False)
-        self.source_sysmon_events = QCheckBox("Sysmon Event Log (1-30)")
-        self.source_sysmon_events.setChecked(True)
 
         source_layout.addWidget(self.source_processes, 0, 0)
         source_layout.addWidget(self.source_network, 0, 1)
         source_layout.addWidget(self.source_services, 1, 0)
         source_layout.addWidget(self.source_scheduled_tasks, 1, 1)
         source_layout.addWidget(self.source_registry, 2, 0)
-        source_layout.addWidget(self.source_sysmon_events, 2, 1)
 
         root.addWidget(source_group)
 
@@ -77,17 +108,25 @@ class BaselineOptionsDialog(QDialog):
         content = QWidget()
         grid = QGridLayout(content)
         grid.addWidget(QLabel("Use"), 0, 0)
-        grid.addWidget(QLabel("Event ID"), 0, 1)
+        grid.addWidget(QLabel("Event"), 0, 1)
         grid.addWidget(QLabel("Rule Mode"), 0, 2)
 
         self.event_rows: dict[int, tuple[QCheckBox, QComboBox]] = {}
         for index, event_id in enumerate(range(1, 31), start=1):
             enabled = QCheckBox()
             enabled.setChecked(True)
-            label = QLabel(str(event_id))
+            event_name = SYS_MON_EVENTS.get(event_id, f"Event {event_id}")
+            label = QLabel(f"{event_id} - {event_name}")
             mode = QComboBox()
             mode.addItems(["include", "exclude"])
             mode.setCurrentText("include")
+            tooltip = EVENT_TOOLTIP_HINTS.get(
+                event_id,
+                "Most teams baseline first, then tune include/exclude based on environment noise.",
+            )
+            label.setToolTip(tooltip)
+            enabled.setToolTip(tooltip)
+            mode.setToolTip(tooltip)
 
             row = index
             grid.addWidget(enabled, row, 0)
@@ -135,8 +174,7 @@ class BaselineOptionsDialog(QDialog):
             enabled_sources.add("scheduled_tasks")
         if self.source_registry.isChecked():
             enabled_sources.add("registry")
-        if self.source_sysmon_events.isChecked():
-            enabled_sources.add("sysmon_events")
+        enabled_sources.add("sysmon_events")
 
         selected_event_ids: set[int] = set()
         event_rule_modes: dict[int, str] = {}
