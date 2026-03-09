@@ -1,7 +1,7 @@
 # Sysmon Config Builder
 
 <div align="center">
-  <img src="[https://git.infinit3i.com/matthew/sysmon-builder/raw/commit/4c3b0654cd4c5b94e8659f2d18f86e01b579ba87/Assets/threat_hunter.jpeg](https://github.com/Infinit3i/sysmon-builder/blob/d367ad1680b642e9badfaf7a506ef403aa0828e2/assets/sysmon.png)" alt="SYSMON" width="400">
+  <img src="https://github.com/Infinit3i/sysmon-builder/blob/d367ad1680b642e9badfaf7a506ef403aa0828e2/assets/sysmon.png" alt="SYSMON" width="400">
 </div>
 
 <p align="center">
