@@ -3,6 +3,7 @@ from importers.xml_importer import import_config
 from gui.rule_editor import RuleEditor
 from models.sysmon_config import SysmonConfig
 from data.sysmon_events import SYS_MON_EVENTS
+from gui.toggle_theme import toggle
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -14,9 +15,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-
 class MainWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, app) -> None:
+        self.app = app
         super().__init__()
 
         self.setWindowTitle("Sysmon Config Builder")
@@ -28,6 +29,9 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
         outer_layout = QVBoxLayout()
+        self.theme_button = QPushButton("Toggle Theme")
+        self.theme_button.clicked.connect(self.toggle_theme)
+        outer_layout.addWidget(self.theme_button)
         central_widget.setLayout(outer_layout)
 
         main_layout = QHBoxLayout()
@@ -103,3 +107,6 @@ class MainWindow(QMainWindow):
             return
 
         QMessageBox.information(self, "Success", f"Saved Sysmon config to:\n{file_path}")
+        
+    def toggle_theme(self):
+        toggle(self.app)
