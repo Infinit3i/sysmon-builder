@@ -1,4 +1,3 @@
-```markdown
 # Sysmon Config Builder
 
 Sysmon Config Builder is a GUI tool for creating, editing, importing, and exporting **Microsoft Sysmon configuration files**. It allows users to construct event filtering rules without manually editing XML, making it easier to build and maintain custom Sysmon configurations.
