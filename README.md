@@ -82,10 +82,10 @@ Setup virtual environment
 `python -m venv sysmon`
 
 (LINUX) activate virtual environment
-`source venv/bin/activate`
+`source sysmon/bin/activate`
 
 (WINDOWS) activate virtual environment
-`venv\Scripts\activate`
+`sysmon\Scripts\activate`
 
 Install dependencies:
 ```bash
