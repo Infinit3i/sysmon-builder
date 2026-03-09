@@ -13,6 +13,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QVBoxLayout,
     QWidget,
+    QSpacerItem,
+    QSizePolicy,
 )
 
 class MainWindow(QMainWindow):
@@ -29,9 +31,19 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
 
         outer_layout = QVBoxLayout()
-        self.theme_button = QPushButton("Toggle Theme")
+        
+        top_bar = QHBoxLayout()
+
+        spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.theme_button = QPushButton("☀")
+        self.theme_button.setFixedSize(32, 32)
         self.theme_button.clicked.connect(self.toggle_theme)
-        outer_layout.addWidget(self.theme_button)
+
+        top_bar.addItem(spacer)
+        top_bar.addWidget(self.theme_button)
+
+        outer_layout.addLayout(top_bar)
         central_widget.setLayout(outer_layout)
 
         main_layout = QHBoxLayout()
@@ -110,3 +122,8 @@ class MainWindow(QMainWindow):
         
     def toggle_theme(self):
         toggle(self.app)
+
+        if self.theme_button.text() == "☀":
+            self.theme_button.setText("🌙")
+        else:
+            self.theme_button.setText("☀")
