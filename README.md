@@ -13,6 +13,8 @@
     <a title="GitHub Commits" target="_blank" href="https://github.com/infinit3i/sysmon-builder/commits/master"><img src="https://img.shields.io/github/commit-activity/m/infinit3i/sysmon-builder.svg?style=flat-square"></a>
     <a title="Last Commit" target="_blank" href="https://github.com/infinit3i/sysmon-builder/commits/master"><img src="https://img.shields.io/github/last-commit/infinit3i/sysmon-builder.svg?style=flat-square&color=FF9900"></a>
 
+![Sysmon-builder](/assets/sysmon-builder.gif)
+
 Sysmon Config Builder is a GUI tool for creating, editing, importing, and exporting **Microsoft Sysmon configuration files**. It allows users to construct event filtering rules without manually editing XML, making it easier to build and maintain custom Sysmon configurations.
 
 ## Features
