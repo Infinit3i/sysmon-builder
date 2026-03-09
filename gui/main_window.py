@@ -2,16 +2,20 @@ from exporters.xml_exporter import export_config
 from importers.xml_importer import import_config
 from importers.powershell_script_generator import ensure_ps_scripts
 from importers.powershell_live_importer import import_live_system_state
+from gui.baseline_options_dialog import BaselineOptions, BaselineOptionsDialog
 from gui.rule_editor import RuleEditor
 from models.sysmon_config import SysmonConfig
 from data.sysmon_events import SYS_MON_EVENTS
 from gui.toggle_theme import toggle
+from PySide6.QtCore import QObject, QThread, Signal, Qt
 from PySide6.QtWidgets import (
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QListWidget,
     QMainWindow,
     QMessageBox,
+    QProgressDialog,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -19,10 +23,40 @@ from PySide6.QtWidgets import (
     QSizePolicy,
 )
 
+
+class BaselineWorker(QObject):
+    progress = Signal(str)
+    finished = Signal(object)
+    failed = Signal(str)
+
+    def __init__(self, options: BaselineOptions) -> None:
+        super().__init__()
+        self.options = options
+
+    def run(self) -> None:
+        try:
+            self.progress.emit("Step 1/2: Generating PowerShell scripts...")
+            ensure_ps_scripts()
+
+            self.progress.emit("Step 2/2: Importing live system baseline...")
+            config = import_live_system_state(
+                enabled_sources=self.options.enabled_sources,
+                selected_event_ids=self.options.selected_event_ids,
+                event_rule_modes=self.options.event_rule_modes,
+                status_callback=self.progress.emit,
+            )
+            self.finished.emit(config)
+        except Exception as exc:
+            self.failed.emit(str(exc))
+
+
 class MainWindow(QMainWindow):
     def __init__(self, app) -> None:
         self.app = app
         super().__init__()
+        self.progress_dialog = None
+        self.worker_thread = None
+        self.worker = None
 
         self.setWindowTitle("Sysmon Config Builder")
         self.setGeometry(100, 100, 1000, 600)
@@ -70,16 +104,12 @@ class MainWindow(QMainWindow):
         self.save_button = QPushButton("Save XML")
         self.save_button.clicked.connect(self.save_xml)
 
-        self.generate_ps_button = QPushButton("Generate PS Scripts")
-        self.generate_ps_button.clicked.connect(self.generate_ps_scripts)
-
-        self.import_live_button = QPushButton("Import Live Windows Data")
-        self.import_live_button.clicked.connect(self.import_live_data)
+        self.baseline_button = QPushButton("Baseline Live System")
+        self.baseline_button.clicked.connect(self.run_baseline_workflow)
 
         button_layout.addWidget(self.import_button)
         button_layout.addWidget(self.save_button)
-        button_layout.addWidget(self.generate_ps_button)
-        button_layout.addWidget(self.import_live_button)
+        button_layout.addWidget(self.baseline_button)
 
         outer_layout.addLayout(button_layout)
 
@@ -130,34 +160,69 @@ class MainWindow(QMainWindow):
 
         QMessageBox.information(self, "Success", f"Saved Sysmon config to:\n{file_path}")
 
-    def generate_ps_scripts(self) -> None:
-        try:
-            created_paths = ensure_ps_scripts()
-        except Exception as exc:
-            QMessageBox.critical(self, "Script Generation Failed", f"Failed to generate scripts:\n{exc}")
+    def run_baseline_workflow(self) -> None:
+        options_dialog = BaselineOptionsDialog(self)
+        if options_dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
-        output_dir = created_paths[0].parent if created_paths else "importers/ps1"
-        QMessageBox.information(
-            self,
-            "Scripts Generated",
-            f"Generated {len(created_paths)} PowerShell scripts in:\n{output_dir}",
-        )
-
-    def import_live_data(self) -> None:
-        try:
-            imported_config = import_live_system_state()
-            imported_events, imported_rules = self._merge_config_rules(imported_config)
-            self.rule_editor.refresh_rules()
-        except Exception as exc:
-            QMessageBox.critical(self, "Live Import Failed", f"Failed to import live system data:\n{exc}")
+        options = options_dialog.get_options()
+        if not options.enabled_sources:
+            QMessageBox.warning(self, "Missing Selection", "Select at least one baseline source.")
+            return
+        if not options.selected_event_ids:
+            QMessageBox.warning(self, "Missing Selection", "Select at least one Event ID.")
             return
 
+        self.progress_dialog = QProgressDialog("Preparing baseline...", "", 0, 0, self)
+        self.progress_dialog.setWindowTitle("Baselining")
+        self.progress_dialog.setCancelButton(None)
+        self.progress_dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        self.progress_dialog.setMinimumDuration(0)
+        self.progress_dialog.show()
+
+        self.baseline_button.setEnabled(False)
+        self.worker_thread = QThread(self)
+        self.worker = BaselineWorker(options)
+        self.worker.moveToThread(self.worker_thread)
+
+        self.worker_thread.started.connect(self.worker.run)
+        self.worker.progress.connect(self._on_baseline_progress)
+        self.worker.finished.connect(self._on_baseline_finished)
+        self.worker.failed.connect(self._on_baseline_failed)
+
+        self.worker.finished.connect(self.worker_thread.quit)
+        self.worker.failed.connect(self.worker_thread.quit)
+        self.worker_thread.finished.connect(self.worker.deleteLater)
+        self.worker_thread.finished.connect(self.worker_thread.deleteLater)
+
+        self.worker_thread.start()
+
+    def _on_baseline_progress(self, text: str) -> None:
+        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+            self.progress_dialog.setLabelText(text)
+
+    def _on_baseline_finished(self, imported_config: SysmonConfig) -> None:
+        imported_events, imported_rules = self._merge_config_rules(imported_config)
+        self.rule_editor.refresh_rules()
+
+        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+            self.progress_dialog.close()
+            self.progress_dialog = None
+
+        self.baseline_button.setEnabled(True)
         QMessageBox.information(
             self,
-            "Live Import Complete",
-            f"Imported {imported_rules} rules across {imported_events} events from live system data.",
+            "Baseline Complete",
+            f"Imported {imported_rules} rules across {imported_events} events.",
         )
+
+    def _on_baseline_failed(self, error_text: str) -> None:
+        if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
+            self.progress_dialog.close()
+            self.progress_dialog = None
+
+        self.baseline_button.setEnabled(True)
+        QMessageBox.critical(self, "Baseline Failed", f"Failed to baseline live system data:\n{error_text}")
 
     def _merge_config_rules(self, incoming: SysmonConfig) -> tuple[int, int]:
         imported_event_count = 0
