@@ -30,6 +30,8 @@ Pre-built releases are available on the **Releases** page.
 
 [![Download Windows](https://img.shields.io/badge/Download-Windows-blue?style=for-the-badge)](https://github.com/Infinit3i/sysmon-builder/releases/latest/download/sysmon-builder-windows.zip)
 
+`unzip sysmon-builder-windows.zip`
+
 Run:
 
 ```
@@ -41,6 +43,8 @@ or double-click `sysmon-builder.exe`.
 ### **Linux**
 
 [![Download Linux](https://img.shields.io/badge/Download-Linux-orange?style=for-the-badge)](https://github.com/Infinit3i/sysmon-builder/releases/latest/download/sysmon-builder-linux.tar.gz)
+
+`tar -xzvf sysmon-builder-linux.tar.gz`
 
 
 Run:
