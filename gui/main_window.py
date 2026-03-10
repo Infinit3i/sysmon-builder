@@ -2,6 +2,7 @@ from exporters.xml_exporter import export_config
 from importers.xml_importer import import_config
 from importers.powershell_script_generator import ensure_ps_scripts
 from importers.powershell_live_importer import import_live_system_state
+from pathlib import Path
 from gui.baseline_options_dialog import BaselineOptions, BaselineOptionsDialog
 from gui.rule_editor import RuleEditor
 from models.sysmon_config import SysmonConfig
@@ -13,6 +14,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QListWidget,
+    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QProgressDialog,
@@ -86,10 +88,8 @@ class MainWindow(QMainWindow):
         outer_layout.addLayout(main_layout)
 
         self.event_list = QListWidget()
-        for event_id, event_name in self.event_map.items():
-            self.event_list.addItem(f"{event_id} - {event_name}")
-
-        self.event_list.currentTextChanged.connect(self.on_event_selected)
+        self._populate_navigation_list()
+        self.event_list.currentItemChanged.connect(self.on_nav_selected)
 
         self.rule_editor = RuleEditor(self.config)
 
@@ -113,11 +113,59 @@ class MainWindow(QMainWindow):
 
         outer_layout.addLayout(button_layout)
 
+        self._set_default_nav_selection()
+        self._apply_modern_styles()
+
+    def _populate_navigation_list(self) -> None:
+        self.event_list.clear()
+
+        section_general = QListWidgetItem("General Settings")
+        section_general.setData(Qt.ItemDataRole.UserRole, {"kind": "general"})
+        self.event_list.addItem(section_general)
+
+        section_presets = QListWidgetItem("Recommended Presets")
+        section_presets.setData(Qt.ItemDataRole.UserRole, {"kind": "presets"})
+        self.event_list.addItem(section_presets)
+
+        for event_id, event_name in self.event_map.items():
+            item = QListWidgetItem(f"{event_id} - {event_name}")
+            item.setData(
+                Qt.ItemDataRole.UserRole,
+                {"kind": "event", "event_id": event_id, "event_name": event_name},
+            )
+            self.event_list.addItem(item)
+
+    def _set_default_nav_selection(self) -> None:
+        for row in range(self.event_list.count()):
+            item = self.event_list.item(row)
+            meta = item.data(Qt.ItemDataRole.UserRole)
+            if isinstance(meta, dict) and meta.get("kind") == "event" and meta.get("event_id") == 1:
+                self.event_list.setCurrentRow(row)
+                return
         self.event_list.setCurrentRow(0)
 
-    def on_event_selected(self, event_text: str) -> None:
-        event_id_str, event_name = event_text.split(" - ", 1)
-        self.rule_editor.set_event(int(event_id_str), event_name)
+    def on_nav_selected(self, current: QListWidgetItem | None, _previous: QListWidgetItem | None) -> None:
+        if current is None:
+            return
+
+        meta = current.data(Qt.ItemDataRole.UserRole)
+        if not isinstance(meta, dict):
+            return
+
+        kind = meta.get("kind")
+        if kind == "event":
+            event_id = meta.get("event_id")
+            event_name = meta.get("event_name")
+            if isinstance(event_id, int) and isinstance(event_name, str):
+                self.rule_editor.set_event(event_id, event_name)
+            return
+
+        if kind == "presets":
+            self.rule_editor.show_preset_editor()
+            return
+
+        if kind == "general":
+            self.rule_editor.show_general_settings()
 
     def import_xml(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
@@ -275,3 +323,8 @@ class MainWindow(QMainWindow):
             self.theme_button.setText("🌙")
         else:
             self.theme_button.setText("☀")
+
+    def _apply_modern_styles(self) -> None:
+        style_path = Path(__file__).resolve().parent.parent / "assets" / "style.qss"
+        if style_path.exists():
+            self.setStyleSheet(style_path.read_text(encoding="utf-8"))

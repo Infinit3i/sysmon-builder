@@ -10,8 +10,14 @@ from PySide6.QtWidgets import (
     QTreeWidget,
     QTreeWidgetItem,
     QHeaderView,
+    QTableWidget,
+    QTableWidgetItem,
+    QMessageBox,
+    QGroupBox,
 )
 from models.sysmon_config import RuleFilter, SysmonConfig
+from data.sysmon_value_presets import SYS_MON_BASELINE_PRESETS
+from data.sysmon_events import SYS_MON_EVENTS
 from PySide6.QtGui import QColor
 from PySide6.QtCore import Qt
 
@@ -70,7 +76,17 @@ class RuleEditor(QWidget):
         self.value_preset_box.setCompleter(self.value_completer)
 
         self.add_button = QPushButton("Add Rule")
-        self.remove_button = QPushButton("Remove Selected Rule")
+        self.add_button.setObjectName("positiveButton")
+        self.add_button.setMinimumHeight(44)
+        self.remove_button = QPushButton("Remove Rule")
+        self.remove_button.setObjectName("negativeButton")
+        self.remove_button.setMinimumHeight(44)
+        self.add_preset_button = QPushButton("Add Rule")
+        self.add_preset_button.setObjectName("positiveButton")
+        self.add_preset_button.setMinimumHeight(44)
+        self.remove_preset_button = QPushButton("Remove Rule")
+        self.remove_preset_button.setObjectName("negativeButton")
+        self.remove_preset_button.setMinimumHeight(44)
         self.new_rules_only_toggle = QCheckBox("Show New Rules Only")
         self.total_counts_label = QLabel("Include (0)  Exclude (0)")
 
@@ -79,6 +95,7 @@ class RuleEditor(QWidget):
         self.rule_tree.setHeaderHidden(True)
         self.rule_tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.rule_tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.rule_tree.setSelectionMode(QTreeWidget.SelectionMode.ExtendedSelection)
 
         self.rule_row_1 = QHBoxLayout()
         self.rule_row_1.addWidget(self.rule_type)
@@ -92,25 +109,161 @@ class RuleEditor(QWidget):
         self.rule_row_2 = QHBoxLayout()
         self.rule_row_2.addWidget(self.value_preset_box)
 
+        self.preset_table = QTableWidget()
+        self.preset_table.setColumnCount(1)
+        self.preset_table.setHorizontalHeaderLabels(["Preset Baseline Options"])
+        self.preset_table.verticalHeader().setVisible(False)
+        self.preset_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+        self.preset_table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
+        self.preset_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.preset_table.horizontalHeader().setStretchLastSection(True)
+        self.preset_table.setFixedHeight(280)
+        self._load_preset_options()
+
+        self.action_row = QHBoxLayout()
+        self.action_row.addWidget(self.add_button)
+        self.action_row.addWidget(self.remove_button)
+
+        self.config_group = QGroupBox("Sysmon Config")
+        self.config_group_layout = QVBoxLayout()
+        self.config_group_layout.setContentsMargins(12, 12, 12, 12)
+        self.config_group_layout.setSpacing(8)
+        self.config_group_layout.addWidget(self.new_rules_only_toggle)
+        self.config_group_layout.addWidget(self.total_counts_label)
+        self.config_group_layout.addWidget(self.rule_tree)
+        self.config_group.setLayout(self.config_group_layout)
+
+        self.preset_view = QWidget()
+        self.preset_view_layout = QVBoxLayout()
+        self.preset_view_layout.setContentsMargins(0, 0, 0, 0)
+        self.preset_view_layout.setSpacing(8)
+        self.preset_view_layout.addWidget(self.preset_table)
+        self.preset_button_row = QHBoxLayout()
+        self.preset_button_row.addWidget(self.add_preset_button)
+        self.preset_button_row.addWidget(self.remove_preset_button)
+        self.preset_view_layout.addLayout(self.preset_button_row)
+        self.preset_view.setLayout(self.preset_view_layout)
+
+        self.general_view = QWidget()
+        self.general_view_layout = QVBoxLayout()
+        self.general_view_layout.setContentsMargins(0, 0, 0, 0)
+        self.general_view_layout.setSpacing(10)
+        self.general_title = QLabel("General Settings")
+        self.general_desc = QLabel("Select global Sysmon settings and defaults.")
+        self.general_desc.setWordWrap(True)
+        self.general_group = QGroupBox("Global Settings")
+        self.general_group_layout = QVBoxLayout()
+        self.general_dns_checkbox = QCheckBox("Enable DNS Query Logging (Event 22)")
+        self.general_hash_md5_checkbox = QCheckBox("Include MD5 in Hash Algorithms")
+        self.general_hash_sha256_checkbox = QCheckBox("Include SHA256 in Hash Algorithms")
+        self.general_hash_imphash_checkbox = QCheckBox("Include IMPHASH in Hash Algorithms")
+        self.general_revocation_checkbox = QCheckBox("Check Revocation")
+        self.general_copy_pe_checkbox = QCheckBox("Archive Executables (CopyOnDeletePE)")
+        self.general_copy_sids_checkbox = QCheckBox("Archive by SIDs (CopyOnDeleteSIDs)")
+        self.general_pipe_monitor_checkbox = QCheckBox("Monitor Named Pipes (Events 17/18)")
+        self.general_wmi_monitor_checkbox = QCheckBox("Monitor WMI Events (19/20/21)")
+
+        self.general_dns_checkbox.setChecked(True)
+        self.general_hash_sha256_checkbox.setChecked(True)
+        self.general_hash_imphash_checkbox.setChecked(True)
+        self.general_revocation_checkbox.setChecked(True)
+        self.general_pipe_monitor_checkbox.setChecked(True)
+        self.general_wmi_monitor_checkbox.setChecked(True)
+
+        self.general_group_layout.addWidget(self.general_dns_checkbox)
+        self.general_group_layout.addWidget(self.general_hash_md5_checkbox)
+        self.general_group_layout.addWidget(self.general_hash_sha256_checkbox)
+        self.general_group_layout.addWidget(self.general_hash_imphash_checkbox)
+        self.general_group_layout.addWidget(self.general_revocation_checkbox)
+        self.general_group_layout.addWidget(self.general_copy_pe_checkbox)
+        self.general_group_layout.addWidget(self.general_copy_sids_checkbox)
+        self.general_group_layout.addWidget(self.general_pipe_monitor_checkbox)
+        self.general_group_layout.addWidget(self.general_wmi_monitor_checkbox)
+        self.general_group.setLayout(self.general_group_layout)
+        self.apply_general_button = QPushButton("Apply")
+        self.apply_general_button.setObjectName("positiveButton")
+        self.apply_general_button.setMinimumHeight(40)
+        self.general_view_layout.addWidget(self.general_title)
+        self.general_view_layout.addWidget(self.general_desc)
+        self.general_view_layout.addWidget(self.general_group)
+        self.general_view_layout.addWidget(self.apply_general_button)
+        self.general_view.setLayout(self.general_view_layout)
+
         self.layout.addWidget(self.title)
         self.layout.addLayout(self.group_row)
         self.layout.addLayout(self.rule_row_1)
         self.layout.addLayout(self.rule_row_2)
-        self.layout.addWidget(self.add_button)
-        self.layout.addWidget(self.remove_button)
-        self.layout.addWidget(self.new_rules_only_toggle)
-        self.layout.addWidget(self.total_counts_label)
-        self.layout.addWidget(self.rule_tree)
+        self.layout.addLayout(self.action_row)
+        self.layout.addWidget(self.preset_view)
+        self.layout.addWidget(self.general_view)
+        self.layout.addWidget(self.config_group)
+        self.layout.setStretchFactor(self.config_group, 1)
 
         self.add_button.clicked.connect(self.add_rule)
         self.remove_button.clicked.connect(self.remove_selected_rule)
+        self.add_preset_button.clicked.connect(self.add_selected_preset)
+        self.remove_preset_button.clicked.connect(self.remove_selected_preset_rules)
+        self.apply_general_button.clicked.connect(self.apply_general_settings)
         self.field_box.currentTextChanged.connect(self.load_value_presets_for_field)
         self.new_rules_only_toggle.stateChanged.connect(self.refresh_rules)
         self.rule_tree.itemClicked.connect(self.on_rule_tree_item_clicked)
+        self.show_event_editor()
+
+    def show_event_editor(self, event_id: int | None = None, event_name: str | None = None) -> None:
+        self._set_event_mode_visible(True)
+        self.preset_view.setVisible(False)
+        self.general_view.setVisible(False)
+        self.total_counts_label.setVisible(True)
+        self.rule_tree.setColumnHidden(1, False)
+        if event_id is not None and event_name is not None:
+            self._set_active_event(event_id, event_name)
+        self.refresh_rules()
+
+    def show_preset_editor(self) -> None:
+        self._set_event_mode_visible(False)
+        self.preset_view.setVisible(True)
+        self.general_view.setVisible(False)
+        self.total_counts_label.setVisible(False)
+        self.rule_tree.setColumnHidden(1, True)
+        self.current_event_id = None
+        self.current_event_name = ""
+        self.title.setText("Recommended Presets")
+        self.refresh_rules()
+
+    def show_general_settings(self, setting_name: str | None = None) -> None:
+        self._set_event_mode_visible(False)
+        self.preset_view.setVisible(False)
+        self.general_view.setVisible(True)
+        self.total_counts_label.setVisible(False)
+        self.rule_tree.setColumnHidden(1, True)
+        self.current_event_id = None
+        self.current_event_name = ""
+        if setting_name:
+            self.general_title.setText(f"General Settings - {setting_name}")
+        else:
+            self.general_title.setText("General Settings")
+        self.refresh_rules()
+
+    def _set_event_mode_visible(self, visible: bool) -> None:
+        self.title.setVisible(visible)
+        self.rule_type.setVisible(visible)
+        self.group_box.setVisible(visible)
+        self.group_relation.setVisible(visible)
+        self.field_box.setVisible(visible)
+        self.condition_box.setVisible(visible)
+        self.value_preset_box.setVisible(visible)
+        self.add_button.setVisible(visible)
+        self.remove_button.setVisible(visible)
+
+    def _load_preset_options(self) -> None:
+        self.preset_table.setRowCount(len(SYS_MON_BASELINE_PRESETS))
+        for row, preset in enumerate(SYS_MON_BASELINE_PRESETS):
+            item = QTableWidgetItem(str(preset["name"]))
+            item.setToolTip(str(preset["tooltip"]))
+            self.preset_table.setItem(row, 0, item)
 
     def set_event(self, event_id: int, event_name: str) -> None:
-        self._set_active_event(event_id, event_name)
-        self.refresh_rules()
+        self.show_event_editor(event_id, event_name)
 
     def _set_active_event(self, event_id: int, event_name: str) -> None:
         self.current_event_id = event_id
@@ -422,22 +575,147 @@ class RuleEditor(QWidget):
         if self.current_event_id is None:
             return
 
-        selected_item = self.rule_tree.currentItem()
-        if selected_item is None:
+        selected_items = self.rule_tree.selectedItems()
+        if not selected_items:
             return
 
-        rule_key = selected_item.data(0, Qt.ItemDataRole.UserRole)
-        if not isinstance(rule_key, tuple) or len(rule_key) != 2:
-            return
+        to_delete: dict[int, set[int]] = {}
+        for item in selected_items:
+            rule_key = item.data(0, Qt.ItemDataRole.UserRole)
+            if not isinstance(rule_key, tuple) or len(rule_key) != 2:
+                continue
+            event_id, rule_index = rule_key
+            if not isinstance(event_id, int) or not isinstance(rule_index, int):
+                continue
+            to_delete.setdefault(event_id, set()).add(rule_index)
 
-        event_id, rule_index = rule_key
-        event_config = self.config.events.get(event_id)
-
-        if event_config is None:
-            return
-
-        if 0 <= rule_index < len(event_config.rules):
-            del event_config.rules[rule_index]
+        for event_id, indexes in to_delete.items():
+            event_config = self.config.events.get(event_id)
+            if event_config is None:
+                continue
+            for rule_index in sorted(indexes, reverse=True):
+                if 0 <= rule_index < len(event_config.rules):
+                    del event_config.rules[rule_index]
 
         self.refresh_group_options()
         self.refresh_rules()
+
+    def add_selected_preset(self) -> None:
+        selected_rows = sorted(
+            {index.row() for index in self.preset_table.selectionModel().selectedRows()}
+        )
+        if not selected_rows:
+            QMessageBox.information(
+                self,
+                "Select Preset",
+                "Select one or more preset options first (Ctrl+Click for multi-select).",
+            )
+            return
+
+        from data.sysmon_fields import SYS_MON_FIELDS
+
+        rules_added = 0
+        target_events = (
+            [(self.current_event_id, self.current_event_name)]
+            if self.current_event_id is not None
+            else [(event_id, event_name) for event_id, event_name in sorted(SYS_MON_EVENTS.items())]
+        )
+
+        for target_event_id, target_event_name in target_events:
+            event_fields = set(SYS_MON_FIELDS.get(target_event_id, []))
+            event_config = self.config.get_or_create_event(target_event_id, target_event_name)
+            existing_rule_keys = {
+                (
+                    rule.rule_type,
+                    rule.field_name,
+                    rule.condition,
+                    rule.value.strip().lower(),
+                    rule.group_id,
+                    rule.group_name,
+                    rule.group_relation,
+                )
+                for rule in event_config.rules
+            }
+
+            for row in selected_rows:
+                if not (0 <= row < len(SYS_MON_BASELINE_PRESETS)):
+                    continue
+                preset = SYS_MON_BASELINE_PRESETS[row]
+                preset_name = str(preset["name"])
+                preset_group_id = f"preset-{row + 1}"
+
+                for rule_type, field_name, condition, value in preset["rules"]:  # type: ignore[index]
+                    if field_name not in event_fields:
+                        continue
+
+                    key = (
+                        str(rule_type),
+                        str(field_name),
+                        str(condition),
+                        str(value).strip().lower(),
+                        preset_group_id,
+                        preset_name,
+                        "or",
+                    )
+                    if key in existing_rule_keys:
+                        continue
+                    existing_rule_keys.add(key)
+
+                    event_config.rules.append(
+                        RuleFilter(
+                            rule_type=str(rule_type),
+                            field_name=str(field_name),
+                            condition=str(condition),
+                            value=str(value),
+                            group_id=preset_group_id,
+                            group_name=preset_name,
+                            group_relation="or",
+                        )
+                    )
+                    rules_added += 1
+
+        if rules_added == 0:
+            QMessageBox.information(
+                self,
+                "Preset Not Applied",
+                "No compatible new rules were found for this event. Try another Event ID.",
+            )
+            return
+
+        self.refresh_group_options()
+        self.refresh_rules()
+
+    def remove_selected_preset_rules(self) -> None:
+        selected_rows = sorted(
+            {index.row() for index in self.preset_table.selectionModel().selectedRows()}
+        )
+        if not selected_rows:
+            QMessageBox.information(
+                self,
+                "Select Preset",
+                "Select one or more preset options first (Ctrl+Click for multi-select).",
+            )
+            return
+
+        group_ids_to_remove = {f"preset-{row + 1}" for row in selected_rows}
+        removed = 0
+        for event_config in self.config.events.values():
+            original = len(event_config.rules)
+            event_config.rules = [
+                rule for rule in event_config.rules if (rule.group_id or "") not in group_ids_to_remove
+            ]
+            removed += original - len(event_config.rules)
+
+        if removed == 0:
+            QMessageBox.information(self, "No Changes", "No matching preset rules were found to remove.")
+            return
+
+        self.refresh_group_options()
+        self.refresh_rules()
+
+    def apply_general_settings(self) -> None:
+        QMessageBox.information(
+            self,
+            "General Settings Applied",
+            "General settings have been applied in the UI context.",
+        )

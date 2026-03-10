@@ -576,3 +576,178 @@ SYS_MON_VALUE_PRESETS: dict[str, list[str]] = {
         "Anonymous Pipe",
     ],
 }
+
+SYS_MON_BASELINE_PRESETS: list[dict[str, object]] = [
+    {
+        "name": "Exclude Windows Binaries",
+        "tooltip": "Common baseline move: exclude native Windows binary paths to reduce noise.",
+        "rules": [("exclude", "Image", "begin with", "C:\\Windows\\")],
+    },
+    {
+        "name": "Exclude Microsoft Signed",
+        "tooltip": "Common baseline move: exclude known Microsoft-signed binaries/libraries where applicable.",
+        "rules": [
+            ("exclude", "Company", "contains", "Microsoft"),
+            ("exclude", "Signature", "contains", "Microsoft"),
+        ],
+    },
+    {
+        "name": "Exclude Known Enterprise Apps",
+        "tooltip": "Common baseline move: exclude repeatedly-seen enterprise software to focus on anomalies.",
+        "rules": [
+            ("exclude", "Image", "contains", "\\Program Files\\Microsoft Office\\"),
+            ("exclude", "Image", "contains", "\\Program Files\\Google\\Chrome\\"),
+            ("exclude", "Image", "contains", "\\Program Files (x86)\\Microsoft\\Edge\\"),
+            ("exclude", "Image", "contains", "\\Program Files\\Microsoft OneDrive\\"),
+        ],
+    },
+    {
+        "name": "Include Non-Windows Apps",
+        "tooltip": "Common baseline move: explicitly include non-Windows application paths for close monitoring.",
+        "rules": [
+            ("include", "Image", "begin with", "C:\\Program Files\\"),
+            ("include", "Image", "begin with", "C:\\Program Files (x86)\\"),
+        ],
+    },
+    {
+        "name": "Include Unsigned Processes",
+        "tooltip": "Common baseline move: include unsigned execution/module activity for triage priority.",
+        "rules": [("include", "Signed", "is", "false")],
+    },
+]
+
+
+def _unique(values: list[str], limit: int = 12) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values:
+        key = value.strip().lower()
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        out.append(value)
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _values_by_keywords(field: str, keywords: list[str], limit: int = 12) -> list[str]:
+    candidates = SYS_MON_VALUE_PRESETS.get(field, [])
+    picked = [
+        value
+        for value in candidates
+        if any(keyword.lower() in value.lower() for keyword in keywords)
+    ]
+    return _unique(picked, limit=limit)
+
+
+def _rules(rule_type: str, field: str, condition: str, values: list[str]) -> list[tuple[str, str, str, str]]:
+    return [(rule_type, field, condition, value) for value in values]
+
+
+SYS_MON_BASELINE_PRESETS.extend(
+    [
+        {
+            "name": "Include Scripting Interpreters",
+            "tooltip": "Most teams monitor script engines closely for execution and staging activity.",
+            "rules": _rules(
+                "include",
+                "Image",
+                "is",
+                _values_by_keywords(
+                    "Image",
+                    ["powershell", "cmd.exe", "wscript", "cscript", "mshta", "rundll32", "regsvr32"],
+                    limit=10,
+                ),
+            ),
+        },
+        {
+            "name": "Include Remote Admin Utilities",
+            "tooltip": "Most teams monitor remote-admin binaries for lateral movement and hands-on-keyboard activity.",
+            "rules": _rules(
+                "include",
+                "Image",
+                "is",
+                _values_by_keywords(
+                    "Image",
+                    ["psexec", "winrs", "wsmprovhost", "wmic", "schtasks", "net.exe", "quser", "qwinsta"],
+                    limit=12,
+                ),
+            ),
+        },
+        {
+            "name": "Include Data Staging Utilities",
+            "tooltip": "Most teams monitor common download/transfer/staging utilities for suspicious use.",
+            "rules": _rules(
+                "include",
+                "Image",
+                "is",
+                _values_by_keywords(
+                    "Image",
+                    ["curl.exe", "wget.exe", "ftp.exe", "certutil", "bitsadmin", "robocopy", "xcopy"],
+                    limit=12,
+                ),
+            ),
+        },
+        {
+            "name": "Include Suspicious CommandLine Flags",
+            "tooltip": "Most teams include high-signal command-line patterns tied to obfuscation and defense evasion.",
+            "rules": _rules(
+                "include",
+                "CommandLine",
+                "contains",
+                _values_by_keywords(
+                    "CommandLine",
+                    ["-enc", "encodedcommand", "invoke-expression", "downloadstring", "frombase64", "disable"],
+                    limit=12,
+                ),
+            ),
+        },
+        {
+            "name": "Exclude Common Parent Processes",
+            "tooltip": "Most teams exclude very common parent processes first, then re-include scoped suspicious cases.",
+            "rules": _rules(
+                "exclude",
+                "ParentImage",
+                "is",
+                _values_by_keywords(
+                    "ParentImage",
+                    ["explorer.exe", "services.exe", "svchost.exe", "winword.exe", "excel.exe", "outlook.exe"],
+                    limit=10,
+                ),
+            ),
+        },
+        {
+            "name": "Include High-Risk Target Processes",
+            "tooltip": "Most teams include access/targeting against high-value processes for rapid triage.",
+            "rules": _rules(
+                "include",
+                "TargetImage",
+                "is",
+                _values_by_keywords(
+                    "TargetImage",
+                    ["lsass.exe", "winlogon.exe", "services.exe", "csrss.exe", "wininit.exe"],
+                    limit=8,
+                ),
+            ),
+        },
+        {
+            "name": "Include Sensitive Named Pipes",
+            "tooltip": "Most teams baseline known pipes and monitor unusual pipe usage.",
+            "rules": _rules(
+                "include",
+                "PipeName",
+                "contains",
+                _values_by_keywords(
+                    "PipeName",
+                    ["\\lsass", "\\winreg", "\\spoolss", "\\srvsvc", "\\wkssvc", "\\crashpad"],
+                    limit=10,
+                ),
+            ),
+        },
+    ]
+)
+
+SYS_MON_BASELINE_PRESETS = [
+    preset for preset in SYS_MON_BASELINE_PRESETS if isinstance(preset.get("rules"), list) and preset["rules"]
+]
