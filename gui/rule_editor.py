@@ -20,13 +20,19 @@ from data.sysmon_value_presets import SYS_MON_BASELINE_PRESETS
 from data.sysmon_events import SYS_MON_EVENTS
 from PySide6.QtGui import QColor
 from PySide6.QtCore import Qt
+from typing import Callable
 
 
 class RuleEditor(QWidget):
-    def __init__(self, config: SysmonConfig) -> None:
+    def __init__(
+        self,
+        config: SysmonConfig,
+        on_config_change: Callable[[str, SysmonConfig], None] | None = None,
+    ) -> None:
         super().__init__()
 
         self.config = config
+        self.on_config_change = on_config_change
         self.current_event_id: int | None = None
         self.current_event_name: str = ""
         self.tree_meta_role = int(Qt.ItemDataRole.UserRole) + 1
@@ -267,6 +273,9 @@ class RuleEditor(QWidget):
 
     def set_event(self, event_id: int, event_name: str) -> None:
         self.show_event_editor(event_id, event_name)
+
+    def set_config(self, config: SysmonConfig) -> None:
+        self.config = config
 
     def _set_active_event(self, event_id: int, event_name: str) -> None:
         self.current_event_id = event_id
@@ -524,6 +533,8 @@ class RuleEditor(QWidget):
         if not value:
             return
 
+        previous_config = self.config.clone()
+
         event_config = self.config.get_or_create_event(
             self.current_event_id,
             self.current_event_name,
@@ -583,6 +594,8 @@ class RuleEditor(QWidget):
         self.value_preset_box.setEditText("")
         self.refresh_group_options()
         self.refresh_rules()
+        if self.on_config_change is not None:
+            self.on_config_change("Add Rule", previous_config)
 
     def remove_selected_rule(self) -> None:
         if self.current_event_id is None:
@@ -602,6 +615,12 @@ class RuleEditor(QWidget):
                 continue
             to_delete.setdefault(event_id, set()).add(rule_index)
 
+        if not to_delete:
+            return
+
+        previous_config = self.config.clone()
+        deleted_count = 0
+
         for event_id, indexes in to_delete.items():
             event_config = self.config.events.get(event_id)
             if event_config is None:
@@ -609,9 +628,12 @@ class RuleEditor(QWidget):
             for rule_index in sorted(indexes, reverse=True):
                 if 0 <= rule_index < len(event_config.rules):
                     del event_config.rules[rule_index]
+                    deleted_count += 1
 
         self.refresh_group_options()
         self.refresh_rules()
+        if deleted_count > 0 and self.on_config_change is not None:
+            self.on_config_change("Remove Rule", previous_config)
 
     def add_selected_preset(self) -> None:
         selected_rows = sorted(
@@ -628,6 +650,7 @@ class RuleEditor(QWidget):
         from data.sysmon_fields import SYS_MON_FIELDS
 
         rules_added = 0
+        previous_config: SysmonConfig | None = None
         target_events = (
             [(self.current_event_id, self.current_event_name)]
             if self.current_event_id is not None
@@ -673,6 +696,8 @@ class RuleEditor(QWidget):
                     if key in existing_rule_keys:
                         continue
                     existing_rule_keys.add(key)
+                    if previous_config is None:
+                        previous_config = self.config.clone()
 
                     event_config.rules.append(
                         RuleFilter(
@@ -697,6 +722,8 @@ class RuleEditor(QWidget):
 
         self.refresh_group_options()
         self.refresh_rules()
+        if previous_config is not None and self.on_config_change is not None:
+            self.on_config_change("Add Preset Rules", previous_config)
 
     def remove_selected_preset_rules(self) -> None:
         selected_rows = sorted(
@@ -711,9 +738,14 @@ class RuleEditor(QWidget):
             return
 
         group_ids_to_remove = {f"preset-{row + 1}" for row in selected_rows}
+        previous_config: SysmonConfig | None = None
         removed = 0
         for event_config in self.config.events.values():
             original = len(event_config.rules)
+            if previous_config is None and any(
+                (rule.group_id or "") in group_ids_to_remove for rule in event_config.rules
+            ):
+                previous_config = self.config.clone()
             event_config.rules = [
                 rule for rule in event_config.rules if (rule.group_id or "") not in group_ids_to_remove
             ]
@@ -725,6 +757,8 @@ class RuleEditor(QWidget):
 
         self.refresh_group_options()
         self.refresh_rules()
+        if previous_config is not None and self.on_config_change is not None:
+            self.on_config_change("Remove Preset Rules", previous_config)
 
     def apply_general_settings(self) -> None:
         QMessageBox.information(

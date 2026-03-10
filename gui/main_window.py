@@ -59,6 +59,7 @@ class MainWindow(QMainWindow):
         self.progress_dialog = None
         self.worker_thread = None
         self.worker = None
+        self.undo_stack: list[tuple[str, SysmonConfig]] = []
 
         self.setWindowTitle("Sysmon Config Builder")
         self.setGeometry(100, 100, 1000, 600)
@@ -74,11 +75,17 @@ class MainWindow(QMainWindow):
 
         spacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
+        self.undo_button = QPushButton("↶")
+        self.undo_button.setFixedSize(32, 32)
+        self.undo_button.setToolTip("Undo")
+        self.undo_button.clicked.connect(self.undo_last_action)
+
         self.theme_button = QPushButton("☀")
         self.theme_button.setFixedSize(32, 32)
         self.theme_button.clicked.connect(self.toggle_theme)
 
         top_bar.addItem(spacer)
+        top_bar.addWidget(self.undo_button)
         top_bar.addWidget(self.theme_button)
 
         outer_layout.addLayout(top_bar)
@@ -91,7 +98,7 @@ class MainWindow(QMainWindow):
         self._populate_navigation_list()
         self.event_list.currentItemChanged.connect(self.on_nav_selected)
 
-        self.rule_editor = RuleEditor(self.config)
+        self.rule_editor = RuleEditor(self.config, on_config_change=self._push_undo_state)
 
         main_layout.addWidget(self.event_list, 1)
         main_layout.addWidget(self.rule_editor, 3)
@@ -115,6 +122,7 @@ class MainWindow(QMainWindow):
 
         self._set_default_nav_selection()
         self._apply_modern_styles()
+        self._update_undo_button()
 
     def _populate_navigation_list(self) -> None:
         self.event_list.clear()
@@ -179,10 +187,12 @@ class MainWindow(QMainWindow):
             return
 
         try:
+            previous_config = self.config.clone()
             imported_config = import_config(file_path)
-            self.config.events = imported_config.events
-            self.rule_editor.config = self.config
+            self.config = imported_config.clone()
+            self.rule_editor.set_config(self.config)
             self.rule_editor.refresh_rules()
+            self._push_undo_state("Import XML", previous_config)
         except Exception as exc:
             QMessageBox.critical(self, "Import Failed", f"Failed to import XML:\n{exc}")
             return
@@ -250,8 +260,11 @@ class MainWindow(QMainWindow):
             self.progress_dialog.setLabelText(text)
 
     def _on_baseline_finished(self, imported_config: SysmonConfig) -> None:
+        previous_config = self.config.clone()
         imported_events, imported_rules = self._merge_config_rules(imported_config)
         self.rule_editor.refresh_rules()
+        if imported_rules > 0:
+            self._push_undo_state("Baseline Import", previous_config)
 
         if hasattr(self, "progress_dialog") and self.progress_dialog is not None:
             self.progress_dialog.close()
@@ -323,6 +336,32 @@ class MainWindow(QMainWindow):
             self.theme_button.setText("🌙")
         else:
             self.theme_button.setText("☀")
+
+    def undo_last_action(self) -> None:
+        if not self.undo_stack:
+            return
+
+        _action_name, snapshot = self.undo_stack.pop()
+        self.config = snapshot.clone()
+        self.rule_editor.set_config(self.config)
+        current_item = self.event_list.currentItem()
+        if current_item is not None:
+            self.on_nav_selected(current_item, None)
+        else:
+            self.rule_editor.refresh_rules()
+        self._update_undo_button()
+
+    def _push_undo_state(self, action_name: str, snapshot: SysmonConfig) -> None:
+        self.undo_stack.append((action_name, snapshot))
+        self._update_undo_button()
+
+    def _update_undo_button(self) -> None:
+        self.undo_button.setEnabled(bool(self.undo_stack))
+        if self.undo_stack:
+            action_name, _snapshot = self.undo_stack[-1]
+            self.undo_button.setToolTip(f"Undo {action_name}")
+        else:
+            self.undo_button.setToolTip("Undo")
 
     def _apply_modern_styles(self) -> None:
         style_path = Path(__file__).resolve().parent.parent / "assets" / "style.qss"
