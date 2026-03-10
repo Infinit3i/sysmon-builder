@@ -14,25 +14,45 @@ QPushButton:hover {
 }
 
 QPushButton#positiveButton {
-    background-color: #2f8f46;
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+        stop: 0 #2f8f46,
+        stop: 0.45 #2a7d3d,
+        stop: 1 #236933
+    );
     border: 1px solid #2a7d3d;
     color: #ffffff;
     font-weight: 600;
 }
 
 QPushButton#positiveButton:hover {
-    background-color: #2a7d3d;
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+        stop: 0 #2a7d3d,
+        stop: 0.45 #236933,
+        stop: 1 #1d572a
+    );
 }
 
 QPushButton#negativeButton {
-    background-color: #c43d32;
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+        stop: 0 #c43d32,
+        stop: 0.45 #aa342a,
+        stop: 1 #8f2b23
+    );
     border: 1px solid #aa342a;
     color: #ffffff;
     font-weight: 600;
 }
 
 QPushButton#negativeButton:hover {
-    background-color: #aa342a;
+    background-color: qlineargradient(
+        x1: 0, y1: 0, x2: 0, y2: 1,
+        stop: 0 #aa342a,
+        stop: 0.45 #8f2b23,
+        stop: 1 #75231d
+    );
 }
 
 QListWidget,
@@ -42,6 +62,12 @@ QLineEdit {
     border-radius: 10px;
     border: 1px solid #b8bcc2;
     padding: 6px;
+}
+
+QLineEdit,
+QComboBox QLineEdit {
+    color: #1f1f1f;
+    placeholder-text-color: #a9afb7;
 }
 
 QCheckBox {

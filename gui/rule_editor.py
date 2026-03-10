@@ -42,7 +42,8 @@ class RuleEditor(QWidget):
         self.group_box = QComboBox()
         self.group_box.setEditable(True)
         self.group_box.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self.group_box.setPlaceholderText("Select or type rule group (optional)")
+        self.group_box.setPlaceholderText("Rule Name")
+        self.group_box.lineEdit().setPlaceholderText("Rule Name")
         self.group_completer = QCompleter(self.group_box.model(), self.group_box)
         self.group_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.group_completer.setFilterMode(Qt.MatchFlag.MatchContains)
@@ -55,7 +56,8 @@ class RuleEditor(QWidget):
         self.field_box = QComboBox()
         self.field_box.setEditable(True)
         self.field_box.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self.field_box.setPlaceholderText("Select or type category...")
+        self.field_box.setPlaceholderText("Select a Category")
+        self.field_box.lineEdit().setPlaceholderText("Select a Category")
         self.field_completer = QCompleter(self.field_box.model(), self.field_box)
         self.field_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.field_completer.setFilterMode(Qt.MatchFlag.MatchContains)
@@ -68,7 +70,8 @@ class RuleEditor(QWidget):
         self.value_preset_box = QComboBox()
         self.value_preset_box.setEditable(True)
         self.value_preset_box.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self.value_preset_box.setPlaceholderText("Select or type value...")
+        self.value_preset_box.setPlaceholderText("...")
+        self.value_preset_box.lineEdit().setPlaceholderText("...")
         self.value_completer = QCompleter(self.value_preset_box.model(), self.value_preset_box)
         self.value_completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.value_completer.setFilterMode(Qt.MatchFlag.MatchContains)
@@ -329,10 +332,15 @@ class RuleEditor(QWidget):
         if not fields:
             self.title.setText(f"{self.current_event_id} - {self.current_event_name} (no fields found)")
             self.value_preset_box.clear()
+            self.value_preset_box.lineEdit().setPlaceholderText("...")
             return
 
         self.field_box.addItems(fields)
-        self.load_value_presets_for_field(self.field_box.currentText())
+        self.field_box.setCurrentIndex(-1)
+        self.field_box.setEditText("")
+        self.value_preset_box.clear()
+        self.value_preset_box.lineEdit().setPlaceholderText("...")
+        self.value_preset_box.setEditText("")
 
     def load_value_presets_for_field(self, field_name: str) -> None:
         from data.sysmon_value_presets import SYS_MON_VALUE_PRESETS
@@ -344,7 +352,12 @@ class RuleEditor(QWidget):
         presets = SYS_MON_VALUE_PRESETS.get(field_name, [])
         if presets:
             self.value_preset_box.addItems(presets)
-        self.value_preset_box.setCurrentText(typed_value)
+            self.value_preset_box.lineEdit().setPlaceholderText(str(presets[0]))
+        else:
+            self.value_preset_box.lineEdit().setPlaceholderText("...")
+
+        self.value_preset_box.setCurrentIndex(-1)
+        self.value_preset_box.setEditText(typed_value)
 
     def refresh_rules(self) -> None:
         self.rule_tree.clear()
